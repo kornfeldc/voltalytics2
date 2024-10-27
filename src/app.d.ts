@@ -1,3 +1,13 @@
+import { DefaultSession } from '@auth/core/types';
+
+declare module '@auth/core/types' {
+	interface Session {
+		userId: string;
+		legacySync: boolean;
+		user: DefaultSession['user'];
+	}
+}
+
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 declare global {

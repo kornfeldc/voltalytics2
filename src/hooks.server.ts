@@ -1,0 +1,1 @@
+﻿export { handle } from './auth';
