@@ -37,7 +37,7 @@
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 268 100% 5%;
     --foreground: 210 40% 98%;
  
     --muted: 217.2 32.6% 17.5%;
@@ -52,8 +52,8 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
  
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 178 100% 68%;
+    --primary-foreground: 0 100% 0%;
  
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -74,5 +74,65 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1{
+    @apply font-bold tracking-wider;
+  }
+  main {
+    @apply p-4;
+  }
+  section {
+  }
+
+
+  .text-inactive {
+    @apply text-slate-400;
+  }
+
+  .text-positive {
+    @apply text-green-600 dark:text-teal-500;
+  }
+
+  .text-negative {
+    @apply text-red-600 dark:text-rose-500;
+  }
+
+  .text-neutral {
+    @apply text-blue-500;
+  }
+
+  .text-neutral2 {
+    @apply text-purple-500;
+  }
+
+  .text-warning {
+    @apply text-amber-600 dark:text-orange-400;
+  }
+
+
+  @keyframes leftToRight {
+    0% {
+      left: 0;
+    }
+    25% {
+      left: 25%;
+    }
+    50% {
+      left: 50%;
+    }
+    775% {
+      left: 75%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+
+  .animateLeftToRight {
+    animation: leftToRight 2s linear infinite;
+  }
+
+  .animateRightToLeft {
+    animation: leftToRight 2s linear infinite reverse;
   }
 }
