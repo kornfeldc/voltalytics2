@@ -1,5 +1,5 @@
 ﻿<script>
-	import AwattarChart from '../../../components/AwattarChart.svelte';
+	import AwattarChart from '../../../components/awattar/AwattarChart.svelte';
 </script>
 
 <section>
