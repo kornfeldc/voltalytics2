@@ -1,5 +1,7 @@
 import { DefaultSession } from '@auth/core/types';
 
+declare const __APP_VERSION__: string;
+
 declare module '@auth/core/types' {
 	interface Session {
 		userId: string;

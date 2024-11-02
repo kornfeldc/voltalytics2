@@ -15,6 +15,8 @@
 		<Zap href="/v/dashboard" class="h-12 w-12 text-amber-400"></Zap>
 		<a href="/v/dashboard" class="ml-1 text-xl">voltalytics</a>
 
+		<div class="text-inactive pl-2 pt-1.5 text-xs">{__APP_VERSION__}</div>
+
 		<div class="inline-block w-full flex-grow text-center uppercase"></div>
 		<Drawer.Trigger>
 			<Avatar.Root>
