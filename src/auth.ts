@@ -2,5 +2,6 @@
 import Google from '@auth/sveltekit/providers/google';
 
 export const { handle } = SvelteKitAuth({
-	providers: [Google]
+	providers: [Google],
+	trustHost: true
 });
