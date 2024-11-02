@@ -8,15 +8,17 @@
 		value: number;
 		doesAffectCosts: boolean;
 		right: boolean;
+		currentPrice: number | undefined;
 	}
 
 	let { label, color, value, doesAffectCosts = true, right = false }: IProps = $props();
 
-	const getFormattedValue = () => {
+	const getFormattedValue = (val: number | undefined) => {
+		if (val === undefined) return '';
 		return new Intl.NumberFormat('de-DE', {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2
-		}).format(value);
+		}).format(val);
 	};
 </script>
 
@@ -24,9 +26,9 @@
 	<div
 		class="{value ? color : 'text-inactive'} flex items-center text-xl {right ? 'justify-end' : ''}"
 	>
-		<span class={!right ? 'mr-2' : ''}>
-			{getFormattedValue()}
-			<span class="text-xs">kW</span>
+		<span class={!right ? 'mr-2' : 'whitespace-nowrap'}>
+			{getFormattedValue(value)}
+			<span class="whitespace-nowrap text-xs"> kW </span>
 		</span>
 		<!-- additional ? -->
 	</div>

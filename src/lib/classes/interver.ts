@@ -38,7 +38,14 @@ export interface IInverterMethods {
 	}: {
 		referenceDate: string;
 		range: 'day' | 'month' | 'year';
-	}): Promise<IInverterStatistic[]|undefined>;
+	}): Promise<IInverterStatistic[] | undefined>;
+	getTimeFrameData({
+		dayFrom,
+		dayTo
+	}: {
+		dayFrom: string;
+		dayTo: string;
+	}): Promise<IInverterRealTimeData[] | undefined>;
 }
 
 export class InverterApi implements IInverterMethods {
@@ -53,10 +60,22 @@ export class InverterApi implements IInverterMethods {
 	}: {
 		referenceDate: string;
 		range: 'day' | 'month' | 'year';
-	}): Promise<IInverterStatistic[]|undefined> {
+	}): Promise<IInverterStatistic[] | undefined> {
 		const apiObj = this.getInverterApiObj();
 		if (!apiObj) return Promise.reject('No inverter API object found.');
 		return apiObj.getStatistics({ referenceDate, range });
+	}
+
+	async getTimeFrameData({
+		dayFrom,
+		dayTo
+	}: {
+		dayFrom: string;
+		dayTo: string;
+	}): Promise<IInverterRealTimeData[] | undefined> {
+		const apiObj = this.getInverterApiObj();
+		if (!apiObj) return Promise.reject('No inverter API object found.');
+		return apiObj.getTimeFrameData({ dayFrom, dayTo });
 	}
 
 	async getRealTimeData(): Promise<IInverterRealTimeData | undefined> {

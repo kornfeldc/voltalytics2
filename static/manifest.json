@@ -1,0 +1,16 @@
+﻿{
+  "name": "voltalytics",
+  "short_name": "voltalytics",
+  "description": "",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C001A",
+  "theme_color": "#0C001A",
+  "icons": [
+    {
+      "src": "/icons/128x128.png",
+      "type": "image/png",
+      "sizes": "128x128"
+    }
+  ]
+}

@@ -24,8 +24,9 @@
 	});
 
 	const getRealTimeInfo = async (): Promise<void> => {
-		const res = await fetch(`/api/inverter/realtime`);
-		realTimeInfo = await res.json();
+		const response = await fetch(`/api/inverter/realtime`);
+		const result = await response.json();
+		realTimeInfo = result.realTimeData;
 	};
 
 	onMount(() => {

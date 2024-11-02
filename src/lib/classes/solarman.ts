@@ -67,6 +67,48 @@ export class SolarmanApi implements IInverterMethods {
 		return this.mapToInverterResult(realTimeInfo);
 	}
 
+	async getTimeFrameData({
+		dayFrom,
+		dayTo
+	}: {
+		dayFrom: string;
+		dayTo: string;
+	}): Promise<IInverterRealTimeData[] | undefined> {
+		const token = await this.getAuthToken();
+		if (!token) return;
+
+		const stationId = await this.getStationId(token);
+		if (!stationId) return;
+
+		const url = `${this.solarManUrl}/station/v1.0/history?language=en`;
+		const body = {
+			stationId,
+			timeType: 1,
+			startTime: dayFrom,
+			endTime: dayTo
+		} as any;
+
+		const response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify(body)
+		});
+
+		if (!response.ok) return;
+
+		const result = await response.json();
+		if (!result?.requestId) return;
+
+		const data = result as any;
+		if (!data.success) return;
+
+		const stationData = result.stationDataItems as ISolarManRealTimeInfo[];
+		return stationData.map((x) => this.mapToInverterResult(x));
+	}
+
 	async getStatistics({
 		referenceDate,
 		range
@@ -169,13 +211,17 @@ export class SolarmanApi implements IInverterMethods {
 	}
 
 	mapToInverterResult(realTimeInfo: ISolarManRealTimeInfo): IInverterRealTimeData {
+		let gridPower = (realTimeInfo.gridPower ?? 0) / 1000;
+		if (gridPower <= 0.01) gridPower = 0;
+
+		const unixDateTime = realTimeInfo.lastUpdateTime ?? (realTimeInfo as any).dateTime;
 		return {
-			timestamp: new Date((realTimeInfo.lastUpdateTime ?? 0) * 1000),
+			timestamp: new Date(unixDateTime * 1000),
 			batterySoc: realTimeInfo.batterySoc,
 			powerProduction: (realTimeInfo.generationPower ?? 0) / 1000,
 			powerUsage: (realTimeInfo.usePower ?? 0) / 1000,
 			powerFromGrid: (realTimeInfo.purchasePower ?? 0) / -1000,
-			powerToGrid: (realTimeInfo.gridPower ?? 0) / 1000,
+			powerToGrid: gridPower,
 			powerFromBattery: (realTimeInfo.dischargePower ?? 0) / 1000,
 			powerToBattery: (realTimeInfo.chargePower ?? 0) / 1000
 		} as IInverterRealTimeData;
