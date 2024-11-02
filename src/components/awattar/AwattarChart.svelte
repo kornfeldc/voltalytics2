@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import type { AwattarEntry } from '$lib/classes/awattar';
 	import moment from 'moment';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	let entries = $state([] as AwattarEntry[]);
 
@@ -89,7 +90,9 @@
 </script>
 
 {#await getEntries()}
-	loading
+	{#each [0, 1, 2, 3, 4, 5, 6] as i}
+		<Skeleton class="mb-2 h-[2em] w-full" />
+	{/each}
 {:then _}
 	{#each entries as entry}
 		<div class="flex {getClass(entry)}">

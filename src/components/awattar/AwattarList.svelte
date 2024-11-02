@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import type { AwattarEntry } from '$lib/classes/awattar';
 	import moment from 'moment';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	const getEntries = async (): Promise<AwattarEntry[]> => {
 		const res = await fetch(`/api/awattar?hours=5`);
@@ -35,7 +36,9 @@
 </script>
 
 {#await getEntries()}
-	loading
+	{#each [0, 1, 2, 3, 4, 5, 6] as i}
+		<Skeleton class="mb-2 h-[1em] w-full" />
+	{/each}
 {:then awattarEntries}
 	<div class="grid grid-cols-2">
 		{#each awattarEntries as entry}
