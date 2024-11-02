@@ -17,7 +17,7 @@
 {#snippet card(title, rightTitle, contentSnippet)}
 	<Card.Header class=" p-2 px-4">
 		<div class="grid grid-cols-2">
-			<h1 class="">{title}</h1>
+			<h1 class="whitespace-nowrap">{title}</h1>
 			<p class="text-right text-sm text-muted-foreground">{rightTitle}</p>
 		</div>
 	</Card.Header>
@@ -34,11 +34,11 @@
 			</Card.Root>
 
 			<Card.Root class={cardClass}>
-				{@render card('today header', '', dashboardToday)}
+				{@render card('today', '', dashboardToday)}
 			</Card.Root>
 
 			<Card.Root class={cardClass}>
-				{@render card('month header', '', dashboardMonth)}
+				{@render card('month', '', dashboardMonth)}
 			</Card.Root>
 		{/if}
 

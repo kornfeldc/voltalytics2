@@ -13,8 +13,6 @@ import { SolarmanApi } from '$lib/classes/solarman';
  * @property {number | null} powerUsage - The power usage of the system, or null if not available.
  */
 export interface IInverterBaseData {
-	batterySoc: number | null;
-
 	powerFromGrid: number | null;
 	powerToGrid: number | null;
 
@@ -25,12 +23,22 @@ export interface IInverterBaseData {
 	powerUsage: number | null;
 }
 
+export interface IInverterStatistic extends IInverterBaseData {}
+
 export interface IInverterRealTimeData extends IInverterBaseData {
 	timestamp: Date;
+	batterySoc: number | null;
 }
 
 export interface IInverterMethods {
 	getRealTimeData(): Promise<IInverterRealTimeData | undefined>;
+	getStatistics({
+		referenceDate,
+		range
+	}: {
+		referenceDate: string;
+		range: 'day' | 'month' | 'year';
+	}): Promise<IInverterStatistic[]|undefined>;
 }
 
 export class InverterApi implements IInverterMethods {
@@ -39,7 +47,19 @@ export class InverterApi implements IInverterMethods {
 		this.userSettings = userSettings;
 	}
 
-	getRealTimeData(): Promise<IInverterRealTimeData | undefined> {
+	async getStatistics({
+		referenceDate,
+		range
+	}: {
+		referenceDate: string;
+		range: 'day' | 'month' | 'year';
+	}): Promise<IInverterStatistic[]|undefined> {
+		const apiObj = this.getInverterApiObj();
+		if (!apiObj) return Promise.reject('No inverter API object found.');
+		return apiObj.getStatistics({ referenceDate, range });
+	}
+
+	async getRealTimeData(): Promise<IInverterRealTimeData | undefined> {
 		const apiObj = this.getInverterApiObj();
 		if (!apiObj) return Promise.reject('No inverter API object found.');
 		return apiObj.getRealTimeData();

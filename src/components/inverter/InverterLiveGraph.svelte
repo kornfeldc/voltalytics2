@@ -14,6 +14,8 @@
 		ZapIcon
 	} from 'lucide-svelte';
 	import moment from 'moment';
+	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 
 	let realTimeInfo = $state({} as IInverterRealTimeData);
 
@@ -26,6 +28,12 @@
 		const res = await fetch(`/api/inverter/realtime`);
 		realTimeInfo = await res.json();
 	};
+
+	onMount(() => {
+		setTimeout(() => {
+			invalidateAll();
+		}, 60 * 1000);
+	});
 </script>
 
 {#snippet productionIcon()}<SunIcon />{/snippet}
@@ -201,35 +209,37 @@
 	})}
 {/snippet}
 
-{#await getRealTimeInfo()}
-	<InverterLiveGraphSkeleton />
-{:then _}
-	<div class="text-inactive relative top-[-1em] text-xs">{lastUpdateTime}</div>
-	<div class="grid grid-cols-3">
-		<div>
-			{@render productionCorner()}
-		</div>
-		<div></div>
-		<div>
-			{@render gridCorner()}
-		</div>
+<div class="h-[10em]">
+	{#await getRealTimeInfo()}
+		<InverterLiveGraphSkeleton />
+	{:then _}
+		<div class="text-inactive relative top-[-1em] text-xs">{lastUpdateTime}</div>
+		<div class="grid grid-cols-3">
+			<div>
+				{@render productionCorner()}
+			</div>
+			<div></div>
+			<div>
+				{@render gridCorner()}
+			</div>
 
-		<div>{@render productionFlow()}</div>
-		<div class={'row-span-2 flex justify-center align-middle'}>
-			<HomeIcon
-				class="mt-1 h-10 w-10 rounded-full border-2 border-primary/70 bg-primary/20 p-1.5 text-white/80"
-			></HomeIcon>
-		</div>
-		<div>{@render gridFlow()}</div>
-		<div>{@render batteryFlow()}</div>
-		<div>{@render usageFlow()}</div>
+			<div>{@render productionFlow()}</div>
+			<div class={'row-span-2 flex justify-center align-middle'}>
+				<HomeIcon
+					class="mt-1 h-10 w-10 rounded-full border-2 border-primary/70 bg-primary/20 p-1.5 text-white/80"
+				></HomeIcon>
+			</div>
+			<div>{@render gridFlow()}</div>
+			<div>{@render batteryFlow()}</div>
+			<div>{@render usageFlow()}</div>
 
-		<div class={'mt-3'}>
-			{@render batteryCorner()}
+			<div class={'mt-3'}>
+				{@render batteryCorner()}
+			</div>
+			<div></div>
+			<div class={'mt-3'}>
+				{@render usageCorner()}
+			</div>
 		</div>
-		<div></div>
-		<div class={'mt-3'}>
-			{@render usageCorner()}
-		</div>
-	</div>
-{/await}
+	{/await}
+</div>
