@@ -51,8 +51,8 @@ export interface IUser {
 }
 
 export class Db {
-	static supabaseUrl = import.meta.env.SUPABASE_URL as string;
-	static supabaseKey = import.meta.env.SUPABASE_KEY as string;
+	static supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+	static supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
 
 	// @ts-ignore
 	static getClient(): SupabaseClient {

@@ -5,7 +5,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import FullPageLoading from '../../components/system/FullPageLoading.svelte';
 	import TopBar from '../../components/system/TopBar.svelte';
-	import { Settings } from 'lucide-svelte';
+	import Settings from '../../components/system/Settings.svelte';
 
 	interface Props {
 		children?: import('svelte').Snippet;

@@ -32,7 +32,7 @@ export interface ISolarManFrameStationDataItem {
 
 export class SolarmanApi implements IInverterMethods {
 	userSettings: IUserSettings;
-	solarManUrl = import.meta.env.SOLARMAN_URL as string;
+	solarManUrl = import.meta.env.VITE_SOLARMAN_URL as string;
 
 	constructor(userSettings: IUserSettings) {
 		this.userSettings = userSettings;

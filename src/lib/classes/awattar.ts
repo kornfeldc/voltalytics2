@@ -8,7 +8,7 @@ export interface AwattarEntry {
 }
 
 export class AwattarApi {
-	static apiEndpoint = import.meta.env.AWATTAR_API as string;
+	static apiEndpoint = import.meta.env.VITE_AWATTAR_API as string;
 	static async getData({ hours = 5, offsetHours = 1 } = {}): Promise<Array<AwattarEntry> | null> {
 		try {
 			const startMoment = moment().startOf('hour').add(-12, 'hours');
