@@ -1,6 +1,5 @@
 ﻿import moment, { type Moment } from 'moment';
 import { VoltCache } from '$lib/classes/voltCache';
-import { AWATTAR_API } from '$env/static/private';
 
 export interface AwattarEntry {
 	time: Moment;
@@ -9,6 +8,7 @@ export interface AwattarEntry {
 }
 
 export class AwattarApi {
+	static apiEndpoint = import.meta.env.AWATTAR_API as string;
 	static async getData({ hours = 5, offsetHours = 1 } = {}): Promise<Array<AwattarEntry> | null> {
 		try {
 			const startMoment = moment().startOf('hour').add(-12, 'hours');
@@ -20,7 +20,7 @@ export class AwattarApi {
 				60 * 60 /*1 hour*/,
 				async (): Promise<any> => {
 					try {
-						let url = `${AWATTAR_API}/marketdata?start=${start}`;
+						let url = `${this.apiEndpoint}/marketdata?start=${start}`;
 						const res = await fetch(url);
 						if (res.ok) return AwattarApi.parseResponse(await res.json());
 						return [];

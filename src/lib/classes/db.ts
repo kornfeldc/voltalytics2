@@ -1,6 +1,5 @@
 ﻿import pkg from '@supabase/supabase-js';
 const { createClient, SupabaseClient } = pkg;
-import { SUPABASE_KEY, SUPABASE_URL } from '$env/static/private';
 
 export interface IUserSettings {
 	currentInverter: '' | 'solarman' | 'solaredge';
@@ -52,8 +51,8 @@ export interface IUser {
 }
 
 export class Db {
-	static supabaseUrl = SUPABASE_URL;
-	static supabaseKey = SUPABASE_KEY;
+	static supabaseUrl = import.meta.env.SUPABASE_URL as string;
+	static supabaseKey = import.meta.env.SUPABASE_KEY as string;
 
 	// @ts-ignore
 	static getClient(): SupabaseClient {

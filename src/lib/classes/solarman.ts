@@ -4,7 +4,6 @@
 	IInverterStatistic
 } from '$lib/classes/interver';
 import type { IUserSettings } from '$lib/classes/db';
-import { SOLARMAN_URL } from '$env/static/private';
 import moment from 'moment';
 
 export interface ISolarManRealTimeInfo {
@@ -33,7 +32,7 @@ export interface ISolarManFrameStationDataItem {
 
 export class SolarmanApi implements IInverterMethods {
 	userSettings: IUserSettings;
-	solarManUrl = SOLARMAN_URL;
+	solarManUrl = import.meta.env.SOLARMAN_URL as string;
 
 	constructor(userSettings: IUserSettings) {
 		this.userSettings = userSettings;
