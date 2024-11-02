@@ -12,7 +12,7 @@
 	};
 </script>
 
-<div class="h-[11em] pt-4">
+<div class="h-[12em] pt-4">
 	{#await getData()}
 		loading
 	{:then data}
