@@ -18,8 +18,6 @@
 			maximumFractionDigits: 2
 		}).format(value);
 	};
-
-	console.log('got value', value);
 </script>
 
 <div class={right ? 'mr-2 text-right' : 'ml-2'}>

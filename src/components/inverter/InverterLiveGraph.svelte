@@ -18,7 +18,6 @@
 	import { invalidateAll } from '$app/navigation';
 
 	let realTimeInfo = $state({} as IInverterRealTimeData);
-
 	let lastUpdateTime = $derived.by(() => {
 		if (!realTimeInfo?.timestamp) return '';
 		return moment(realTimeInfo.timestamp).format('DD.MM.yyyy HH:mm');
@@ -31,7 +30,8 @@
 
 	onMount(() => {
 		setTimeout(() => {
-			invalidateAll();
+			const dialog = document.querySelector('div[role="dialog"]');
+			if (!dialog) invalidateAll();
 		}, 60 * 1000);
 	});
 </script>

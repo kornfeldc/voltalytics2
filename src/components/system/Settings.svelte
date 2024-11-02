@@ -45,13 +45,7 @@
 	let userImage = $derived($page.data?.session?.user?.image);
 	let userName = $derived($page.data?.session?.user?.email);
 	let isChargingPossible = $derived.by(() => {
-		const isOn = formData.currentInverter !== '' && formData.currentWallbox !== '';
-		console.log('isjchargingpossible:', {
-			isOn,
-			iv: formData.currentInverter,
-			wb: formData.currentWallbox
-		});
-		return isOn;
+		return formData.currentInverter !== '' && formData.currentWallbox !== '';
 	});
 
 	const changeInverter = (option: any) => {

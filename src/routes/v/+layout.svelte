@@ -18,8 +18,8 @@
 		userSettings = await data.userSettings;
 	};
 
-	const saved = async () => {
-		await invalidateAll();
+	const saved = () => {
+		invalidateAll();
 	};
 
 	let { children, data }: Props = $props();
