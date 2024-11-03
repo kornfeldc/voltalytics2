@@ -5,12 +5,14 @@
 	import DashboardToday from '../../../components/dashboard/DashboardToday.svelte';
 	import DashboardMonth from '../../../components/dashboard/DashboardMonth.svelte';
 	import DashboardPrices from '../../../components/dashboard/DashboardPrices.svelte';
+	import DashboardWallBox from '../../../components/dashboard/DashboardWallBox.svelte';
 	let { data } = $props();
 
 	const cardClass = 'shadow-lg shadow-slate-800 border-slate-900';
 </script>
 
 {#snippet dashboardLive()}<DashboardLive />{/snippet}
+{#snippet dashboardWallbox()}<DashboardWallBox />{/snippet}
 {#snippet dashboardToday()}<DashboardToday />{/snippet}
 {#snippet dashboardMonth()}<DashboardMonth />{/snippet}
 {#snippet dashboardPrices()}<DashboardPrices />{/snippet}
@@ -31,6 +33,10 @@
 		{#if userSettings?.currentInverter}
 			<Card.Root class="col-span-2 {cardClass}">
 				{@render card(`${userSettings?.currentInverter} live data`, '', dashboardLive)}
+			</Card.Root>
+
+			<Card.Root class="col-span-2 {cardClass}">
+				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardWallbox)}
 			</Card.Root>
 
 			<Card.Root class={cardClass}>
