@@ -1,8 +1,5 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
-import moment from 'moment';
 import type { IWallBoxMethods, IWallBoxRealTimeData } from '$lib/classes/wallBox';
-import { vConsole } from '$lib/classes/vconsole';
-import { v } from '../../../.svelte-kit/output/server/chunks';
 
 export class GoeApi implements IWallBoxMethods {
 	userSettings: IUserSettings;
