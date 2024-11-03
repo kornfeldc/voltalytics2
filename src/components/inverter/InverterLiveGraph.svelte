@@ -16,6 +16,7 @@
 	import moment from 'moment';
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { vConsole } from '$lib/classes/vconsole';
 
 	let realTimeInfo = $state({} as IInverterRealTimeData);
 	let lastUpdateTime = $derived.by(() => {
@@ -30,11 +31,18 @@
 	};
 
 	onMount(() => {
-		setTimeout(() => {
-			const dialog = document.querySelector('div[role="dialog"]');
-			if (!dialog) invalidateAll();
-		}, 60 * 1000);
+		reload(true);
 	});
+
+	const reload = (first = false) => {
+		if (!first) {
+			const dialog = document.querySelector('div[role="dialog"]');
+			if (!dialog) getRealTimeInfo();
+		}
+		setTimeout(() => {
+			reload();
+		}, 120 * 1000);
+	};
 </script>
 
 {#snippet productionIcon()}<SunIcon />{/snippet}

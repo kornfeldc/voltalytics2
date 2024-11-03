@@ -1,8 +1,10 @@
 ﻿import { json, redirect } from '@sveltejs/kit';
 import { InverterApi } from '$lib/classes/interver';
 import { Db } from '$lib/classes/db';
+import { vConsole } from '$lib/classes/vconsole';
 
 export async function GET({ locals, url }) {
+	vConsole.log('api call - timeframe', url.href);
 	const session = await locals.auth();
 	if (!session?.user?.email) redirect(307, '/');
 

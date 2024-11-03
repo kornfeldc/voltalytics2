@@ -135,4 +135,12 @@
   .animateRightToLeft {
     animation: leftToRight 2s linear infinite reverse;
   }
+
+  .safe_padding_bottom_reduced {
+    padding-bottom: calc(env(safe-area-inset-bottom) - 0.5em) !important;
+  }
+
+  .safe_margin_bottom_reduced {
+    margin-bottom: calc(env(safe-area-inset-bottom) - 0.5em) !important;
+  }
 }
