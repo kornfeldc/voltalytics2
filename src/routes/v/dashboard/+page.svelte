@@ -6,9 +6,13 @@
 	import DashboardMonth from '../../../components/dashboard/DashboardMonth.svelte';
 	import DashboardPrices from '../../../components/dashboard/DashboardPrices.svelte';
 	import DashboardWallBox from '../../../components/dashboard/DashboardWallBox.svelte';
+	import { drawerState } from '$lib/state/drawerState.svelte.js';
 	let { data } = $props();
 
 	const cardClass = 'shadow-lg shadow-slate-800 border-slate-900';
+	const openSettings = () => {
+		drawerState.isOpened = true;
+	};
 </script>
 
 {#snippet dashboardLive()}<DashboardLive />{/snippet}
@@ -35,7 +39,7 @@
 				{@render card(`${userSettings?.currentInverter} live data`, '', dashboardLive)}
 			</Card.Root>
 
-			<Card.Root class="col-span-2 {cardClass}">
+			<Card.Root class="col-span-2 {cardClass}" onclick={() => openSettings()}>
 				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardWallbox)}
 			</Card.Root>
 

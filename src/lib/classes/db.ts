@@ -27,29 +27,6 @@ export interface IUserSettings {
 	forceChargeKw?: number;
 }
 
-export interface IUser {
-	theme: string;
-	email: string;
-	hash: string;
-	solarManIsOn: boolean;
-	solarManAppId: string;
-	solarManAppSecret: string;
-	solarManAppEmail: string;
-	solarManAppPw: string;
-	solarManLastAccessToken: string;
-	chargeWithExcessIsOn: boolean;
-	chargeUntilMinBattery?: number;
-	forceChargeIsOn?: boolean;
-	forceChargeUnderCent?: number;
-	forceChargeKw?: number;
-	goEIsOn: boolean;
-	goESerial: string;
-	goEApiToken: string;
-	useAwattar: boolean;
-	solarEdgeIsOn: boolean;
-	solarEdgeApiKey: string;
-}
-
 export class Db {
 	static supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 	static supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string;
@@ -59,7 +36,7 @@ export class Db {
 		return createClient(this.supabaseUrl, this.supabaseKey);
 	}
 
-	static async getUser(email: string): Promise<IUser | undefined> {
+	static async getUserSettings(email: string): Promise<IUserSettings | undefined> {
 		if (!email) return;
 
 		const supabase = this.getClient();
@@ -69,18 +46,13 @@ export class Db {
 		if (!data) {
 			// insert user entry
 			await supabase.from('user').insert({ email });
-			return this.getUser(email);
+			return this.getUserSettings(email);
 		}
 
 		return this.mapFromDb(data);
 	}
 
-	static async getUserSettings(email: string): Promise<IUserSettings | undefined> {
-		const user = await this.getUser(email);
-		return user ? this.mapToUserSettings(user) : undefined;
-	}
-
-	static async getUserByHash(hash: string): Promise<IUser | undefined> {
+	static async getUserSettingsByHash(hash: string): Promise<IUserSettings | undefined> {
 		if (!hash) return;
 
 		const supabase = this.getClient();
@@ -98,55 +70,58 @@ export class Db {
 		return this.mapFromDb(data);
 	}
 
-	static mapFromDb(dbUser: any): IUser {
+	static mapFromDb(dbUser: any): IUserSettings {
 		return {
 			email: dbUser.email,
 			hash: dbUser.hash,
 			theme: dbUser.theme,
+			currentInverter: dbUser.solarManIsOn ? 'solarman' : dbUser.solarEdgeIsOn ? 'solaredge' : '',
+			currentWallbox: dbUser.goEIsOn ? 'goe' : '',
+
 			solarManAppId: dbUser.solarManAppId,
 			solarManAppSecret: dbUser.solarManAppSecret,
 			solarManAppEmail: dbUser.solarManAppEmail,
 			solarManAppPw: dbUser.solarManAppPw,
-			solarManIsOn: dbUser.solarManIsOn,
-			solarManLastAccessToken: dbUser.solarManLastAccessToken,
-			chargeWithExcessIsOn: dbUser.chargeWithExcessIsOn,
-			chargeUntilMinBattery: dbUser.chargeUntilMinBattery,
-			forceChargeIsOn: dbUser.forceChargeIsOn,
-			forceChargeUnderCent: dbUser.forceChargeUnderCent,
-			forceChargeKw: dbUser.forceChargeKw,
-			goEIsOn: dbUser.goEIsOn,
+
+			solarEdgeApiKey: dbUser.solarEdgeApiKey,
+
 			goESerial: dbUser.goESerial,
 			goEApiToken: dbUser.goEApiToken,
+
 			useAwattar: dbUser.useAwattar,
-			solarEdgeIsOn: dbUser.solarEdgeIsOn,
-			solarEdgeApiKey: dbUser.solarEdgeApiKey
-		} as IUser;
+
+			chargeWithExcessIsOn: dbUser.chargeWithExcessIsOn,
+			chargeUntilMinBattery: dbUser.chargeUntilMinBattery,
+
+			forceChargeIsOn: dbUser.forceChargeIsOn,
+			forceChargeUnderCent: dbUser.forceChargeUnderCent,
+			forceChargeKw: dbUser.forceChargeKw
+		} as IUserSettings;
 	}
 
 	static async saveUserSettings(email: string, settings: IUserSettings) {
-		const user = this.mapSettingsToUser(settings);
 		const supabase = this.getClient();
 		const { error } = await supabase
 			.from('user')
 			.update({
 				// theme: user.theme,
 				// hash: user.hash,
-				solarManAppId: user.solarManAppId,
-				solarManAppSecret: user.solarManAppSecret,
-				solarManAppEmail: user.solarManAppEmail,
-				solarManAppPw: user.solarManAppPw,
-				solarManIsOn: user.solarManIsOn,
-				solarEdgeIsOn: user.solarEdgeIsOn,
-				solarEdgeApiKey: user.solarEdgeApiKey,
-				useAwattar: user.useAwattar,
-				chargeWithExcessIsOn: user.chargeWithExcessIsOn,
-				chargeUntilMinBattery: user.chargeUntilMinBattery,
-				forceChargeIsOn: user.forceChargeIsOn,
-				forceChargeUnderCent: user.forceChargeUnderCent,
-				forceChargeKw: user.forceChargeKw,
-				goEIsOn: user.goEIsOn,
-				goESerial: user.goESerial,
-				goEApiToken: user.goEApiToken
+				solarManAppId: settings.solarManAppId,
+				solarManAppSecret: settings.solarManAppSecret,
+				solarManAppEmail: settings.solarManAppEmail,
+				solarManAppPw: settings.solarManAppPw,
+				solarManIsOn: settings.currentInverter === 'solarman',
+				solarEdgeIsOn: settings.currentInverter === 'solaredge',
+				solarEdgeApiKey: settings.solarEdgeApiKey,
+				useAwattar: settings.useAwattar,
+				chargeWithExcessIsOn: settings.chargeWithExcessIsOn,
+				chargeUntilMinBattery: settings.chargeUntilMinBattery,
+				forceChargeIsOn: settings.forceChargeIsOn,
+				forceChargeUnderCent: settings.forceChargeUnderCent,
+				forceChargeKw: settings.forceChargeKw,
+				goEIsOn: settings.currentWallbox === 'goe',
+				goESerial: settings.goESerial,
+				goEApiToken: settings.goEApiToken
 			})
 			.eq('email', email);
 	}
@@ -159,59 +134,5 @@ export class Db {
 				solarManLastAccessToken: token
 			})
 			.eq('email', email);
-	}
-
-	static mapToUserSettings(user: IUser): IUserSettings {
-		return {
-			theme: user.theme,
-			currentInverter: user.solarManIsOn ? 'solarman' : user.solarEdgeIsOn ? 'solaredge' : '',
-			currentWallbox: user.goEIsOn ? 'goe' : '',
-
-			solarManAppId: user.solarManAppId,
-			solarManAppSecret: user.solarManAppSecret,
-			solarManAppEmail: user.solarManAppEmail,
-			solarManAppPw: user.solarManAppPw,
-
-			solarEdgeApiKey: user.solarEdgeApiKey,
-
-			goESerial: user.goESerial,
-			goEApiToken: user.goEApiToken,
-
-			useAwattar: user.useAwattar,
-
-			chargeWithExcessIsOn: user.chargeWithExcessIsOn,
-			chargeUntilMinBattery: user.chargeUntilMinBattery,
-
-			forceChargeIsOn: user.forceChargeIsOn,
-			forceChargeUnderCent: user.forceChargeUnderCent,
-			forceChargeKw: user.forceChargeKw
-		} as IUserSettings;
-	}
-
-	static mapSettingsToUser(userSettings: IUserSettings): IUser {
-		return {
-			theme: userSettings.theme,
-			solarManIsOn: userSettings.currentInverter === 'solarman',
-			goEIsOn: userSettings.currentWallbox === 'goe',
-
-			solarManAppId: userSettings.solarManAppId,
-			solarManAppSecret: userSettings.solarManAppSecret,
-			solarManAppEmail: userSettings.solarManAppEmail,
-			solarManAppPw: userSettings.solarManAppPw,
-
-			goESerial: userSettings.goESerial,
-			goEApiToken: userSettings.goEApiToken,
-
-			solarEdgeIsOn: userSettings.currentInverter === 'solaredge',
-			solarEdgeApiKey: userSettings.solarEdgeApiKey,
-			useAwattar: userSettings.useAwattar,
-
-			chargeWithExcessIsOn: userSettings.chargeWithExcessIsOn,
-			chargeUntilMinBattery: userSettings.chargeUntilMinBattery,
-
-			forceChargeIsOn: userSettings.forceChargeIsOn,
-			forceChargeUnderCent: userSettings.forceChargeUnderCent,
-			forceChargeKw: userSettings.forceChargeKw
-		} as IUser;
 	}
 }

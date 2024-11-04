@@ -7,6 +7,7 @@
 	import TopBar from '../../components/system/TopBar.svelte';
 	import Settings from '../../components/system/Settings.svelte';
 	import { onMount } from 'svelte';
+	import { drawerState } from '$lib/state/drawerState.svelte.js';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -36,7 +37,7 @@
 
 		const handleTouchMove = (event: TouchEvent) => {
 			endY = event.touches[0].clientY;
-			if (endY - startY > 100) {
+			if (endY - startY > 200) {
 				// Trigger refresh if pulled down more than 100px
 				invalidateAll();
 			}
@@ -56,7 +57,7 @@
 	<FullPageLoading></FullPageLoading>
 {:then _}
 	{#if userSettings}
-		<Drawer.Root>
+		<Drawer.Root bind:open={drawerState.isOpened}>
 			<div class="flex min-h-screen flex-col">
 				<TopBar></TopBar>
 				<main>
