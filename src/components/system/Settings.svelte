@@ -160,17 +160,41 @@
 					<Label class="col-span-3">Activate Excess Charging</Label>
 					<Switch class="" id="excess" bind:checked={formData.chargeWithExcessIsOn}></Switch>
 
-					{#if formData.chargeWithExcessIsOn}
-						<Label class="col-span-3">Always charge when battery above (%)</Label>
-						<Input type="number" bind:value={formData.chargeUntilMinBattery} />
+					{#if (formData.chargeUntilMinBattery ?? 0) > 0}
+						<div class="col-span-4 my-3"></div>
+					{/if}
+					<Label class="col-span-3">Activate Charging from PV Battery</Label>
+					<Switch
+						class=""
+						id="force"
+						checked={(formData.chargeUntilMinBattery ?? 0) < 100}
+						onCheckedChange={(v) => {
+							formData.chargeUntilMinBattery = v ? 70 : 100;
+						}}
+					></Switch>
+					{#if (formData.chargeUntilMinBattery ?? 0) < 100}
+						<Label class="col-span-3">Always charge when battery is above (%)</Label>
+						<Slider
+							class="col-span-3 pr-4"
+							value={[formData.chargeUntilMinBattery ?? 0]}
+							onValueChange={(v) => {
+								formData.chargeUntilMinBattery = v[0];
+							}}
+							min={10}
+							max={90}
+							step={5}
+						/>
+						<Input type="number" bind:value={formData.chargeUntilMinBattery} readonly />
 					{/if}
 
-					{#if formData.useAwattar}
+					{#if formData.forceChargeIsOn || (formData.chargeUntilMinBattery ?? 0) < 100}
 						<div class="col-span-4 my-3"></div>
-						<Label class="col-span-3">Activate Force Charging</Label>
-						<Switch class="" id="force" bind:checked={formData.forceChargeIsOn}></Switch>
+					{/if}
+					<Label class="col-span-3">Activate Force Charging</Label>
+					<Switch class="" id="force" bind:checked={formData.forceChargeIsOn}></Switch>
 
-						{#if formData.forceChargeIsOn}
+					{#if formData.forceChargeIsOn}
+						{#if formData.useAwattar}
 							<Label class="col-span-4 mt-3">Force charge when Awattar price is below cent</Label>
 							<Slider
 								class="col-span-3 pr-4"
@@ -183,20 +207,20 @@
 								step={0.1}
 							/>
 							<Input type="number" bind:value={formData.forceChargeUnderCent} readonly />
-
-							<Label class="col-span-4 mt-3">Force charge kw</Label>
-							<Slider
-								class="col-span-3 pr-4 "
-								value={[formData.forceChargeKw ?? 1]}
-								onValueChange={(v) => {
-									formData.forceChargeKw = v[0];
-								}}
-								min={1}
-								max={10}
-								step={0.5}
-							/>
-							<Input type="number" bind:value={formData.forceChargeKw} readonly />
 						{/if}
+
+						<Label class="col-span-4 mt-3">Force charge kw</Label>
+						<Slider
+							class="col-span-3 pr-4 "
+							value={[formData.forceChargeKw ?? 1]}
+							onValueChange={(v) => {
+								formData.forceChargeKw = v[0];
+							}}
+							min={1}
+							max={10}
+							step={0.5}
+						/>
+						<Input type="number" bind:value={formData.forceChargeKw} readonly />
 					{/if}
 
 					<Drawer.Close class="col-span-4 mt-4">
