@@ -37,7 +37,7 @@
 
 		const handleTouchMove = (event: TouchEvent) => {
 			endY = event.touches[0].clientY;
-			if (endY - startY > 200) {
+			if (endY - startY > 400) {
 				// Trigger refresh if pulled down more than 100px
 				invalidateAll();
 			}

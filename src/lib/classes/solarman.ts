@@ -222,7 +222,7 @@ export class SolarmanApi implements IInverterMethods {
 			powerUsage: (realTimeInfo.usePower ?? 0) / 1000,
 			powerFromGrid: (realTimeInfo.purchasePower ?? 0) / -1000,
 			powerToGrid: gridPower,
-			powerFromBattery: (realTimeInfo.dischargePower ?? 0) / 1000,
+			powerFromBattery: (realTimeInfo.dischargePower ?? 0) / -1000,
 			powerToBattery: (realTimeInfo.chargePower ?? 0) / 1000
 		} as IInverterRealTimeData;
 	}
