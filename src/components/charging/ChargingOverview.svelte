@@ -1,39 +1,27 @@
 ﻿<script lang="ts">
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import type { IInverterStatistic } from '$lib/classes/interver';
-	import type { IUserSettings } from '$lib/classes/db';
-	import {
-		BanIcon,
-		BatteryIcon,
-		BoltIcon,
-		CarFrontIcon,
-		CarIcon,
-		HomeIcon,
-		SunIcon,
-		UnplugIcon,
-		ZapIcon
-	} from 'lucide-svelte';
-	import type { IWallBoxRealTimeData } from '$lib/classes/wallBox';
+	import { BatteryIcon, CarIcon, SunIcon, UnplugIcon, ZapIcon } from 'lucide-svelte';
 	import { vConsole } from '$lib/classes/vconsole';
+	import type { IChargingInfo } from '$lib/classes/charging';
 
-	let realTimeData = $state({} as IWallBoxRealTimeData);
-	let userSettings = $state({} as IUserSettings);
+	let chargingInfo = $state({} as IChargingInfo);
 
-	const getRealTimeData = async (): Promise<void> => {
-		const res = await fetch(`/api/wallbox/realtime`);
-		const result = await res.json();
-		realTimeData = result.realTimeData;
-		userSettings = result.userSettings;
+	const getChargingInfo = async (): Promise<void> => {
+		const res = await fetch(`/api/charging`);
+		chargingInfo = await res.json();
 
-		vConsole.log('data', realTimeData);
-		if ((realTimeData?.kw ?? 0) > 0) status = 'force';
-		else if (realTimeData?.carStatus === 'unknown') status = 'no_car';
+		vConsole.log('data', chargingInfo);
+
+		if ((chargingInfo?.kw ?? 0) > 0) status = chargingInfo.suggestion.currentChargingReason as any;
+		else if (chargingInfo?.carStatus === 'unknown') status = 'no_car';
 		else status = 'not_charging';
 	};
 
-	const isExcessChargingEnabled = $derived(userSettings.chargeWithExcessIsOn);
-	const isForceChargingEnabled = $derived(userSettings.forceChargeIsOn);
-	const isBatteryChargingEnabled = $derived((userSettings.chargeUntilMinBattery ?? 0) > 0);
+	const isExcessChargingEnabled = $derived(chargingInfo.userSettings.chargeWithExcessIsOn);
+	const isForceChargingEnabled = $derived(chargingInfo.userSettings.forceChargeIsOn);
+	const isBatteryChargingEnabled = $derived(
+		(chargingInfo.userSettings.chargeUntilMinBattery ?? 0) > 0
+	);
 
 	let status = $state('no_car' as 'force' | 'excess' | 'battery' | 'not_charging' | 'no_car');
 	const isCharging = $derived(status !== 'not_charging' && status !== 'no_car');
@@ -100,7 +88,7 @@
 	{:else if isBatteryChargingEnabled}
 		{@render renderStatusLine(
 			false,
-			'battery charging enabled (>' + userSettings.chargeUntilMinBattery + '%)'
+			'battery charging enabled (>' + chargingInfo.userSettings.chargeUntilMinBattery + '%)'
 		)}
 	{:else}
 		{@render renderStatusLine(false, 'battery charging disabled')}
@@ -116,8 +104,8 @@
 		{:else if status === 'no_car'}
 			no car plugged in
 		{:else}
-			{realTimeData?.kw} kw
-			<span class="pl-1 text-xs">{realTimeData?.phase}p|{realTimeData?.ampere}a</span>
+			{chargingInfo?.kw} kw
+			<span class="pl-1 text-xs">{chargingInfo?.phase}p|{chargingInfo?.ampere}a</span>
 		{/if}
 	</span>
 {/snippet}
@@ -137,7 +125,7 @@
 {/snippet}
 
 <div class="h-[8.5em]">
-	{#await getRealTimeData()}
+	{#await getChargingInfo()}
 		{@render skeleton()}
 	{:then _}
 		{@const iconClass = 'mt-4 h-8 w-8 text-slate-400'}

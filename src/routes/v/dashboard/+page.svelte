@@ -5,7 +5,7 @@
 	import DashboardToday from '../../../components/dashboard/DashboardToday.svelte';
 	import DashboardMonth from '../../../components/dashboard/DashboardMonth.svelte';
 	import DashboardPrices from '../../../components/dashboard/DashboardPrices.svelte';
-	import DashboardWallBox from '../../../components/dashboard/DashboardWallBox.svelte';
+	import DashboardCharging from '../../../components/dashboard/DashboardCharging.svelte';
 	import { drawerState } from '$lib/state/drawerState.svelte.js';
 	let { data } = $props();
 
@@ -16,7 +16,7 @@
 </script>
 
 {#snippet dashboardLive()}<DashboardLive />{/snippet}
-{#snippet dashboardWallbox()}<DashboardWallBox />{/snippet}
+{#snippet dashboardCharging()}<DashboardCharging />{/snippet}
 {#snippet dashboardToday()}<DashboardToday />{/snippet}
 {#snippet dashboardMonth()}<DashboardMonth />{/snippet}
 {#snippet dashboardPrices()}<DashboardPrices />{/snippet}
@@ -40,7 +40,7 @@
 			</Card.Root>
 
 			<Card.Root class="col-span-2 {cardClass}" onclick={() => openSettings()}>
-				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardWallbox)}
+				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
 			</Card.Root>
 
 			<Card.Root class={cardClass}>
