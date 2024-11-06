@@ -48,7 +48,7 @@ export class ChargingApi {
 			? ((await AwattarApi.getCurrentPrice()) ?? null)
 			: null;
 
-		const chargingStatus = {
+		let chargingStatus = {
 			gotInverterData: inverterRealTimeData !== null,
 			powerProduction: inverterRealTimeData?.powerProduction ?? 0,
 			powerUsage: inverterRealTimeData?.powerUsage ?? 0,
@@ -65,6 +65,14 @@ export class ChargingApi {
 			currentPrice: currentPrice
 		} as IChargingStatus;
 
+		// fake data for tesing
+		// chargingStatus.kw = 5;
+		// chargingStatus.powerUsage = 6;
+		// chargingStatus.powerProduction = 3;
+		// chargingStatus.carStatus = 'charging';
+		// chargingStatus.batterySoc = 80;
+		// this.userSettings.chargeUntilMinBattery = 70;
+
 		return {
 			...chargingStatus,
 			userSettings: this.userSettings,
@@ -79,12 +87,12 @@ export class ChargingApi {
 		const usageWithoutCar = (status.powerUsage ?? 0) - (status.kw ?? 0);
 		const exceedingKw = (status.powerProduction ?? 0) - usageWithoutCar;
 
-		if (currentlyCharging && this.userSettings.chargeWithExcessIsOn && exceedingKw > 0)
-			ret.currentChargingReason = 'excess';
-		else if (
+		if (
 			currentlyCharging &&
 			(status.batterySoc ?? 0) > (this.userSettings.chargeUntilMinBattery ?? 0)
 		)
+			ret.currentChargingReason = 'battery';
+		else if (currentlyCharging && this.userSettings.chargeWithExcessIsOn && exceedingKw > 0)
 			ret.currentChargingReason = 'excess';
 		else if (currentlyCharging) ret.currentChargingReason = 'force';
 		else ret.currentChargingReason = '';

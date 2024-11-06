@@ -20,7 +20,7 @@
 	const isExcessChargingEnabled = $derived(chargingInfo.userSettings.chargeWithExcessIsOn);
 	const isForceChargingEnabled = $derived(chargingInfo.userSettings.forceChargeIsOn);
 	const isBatteryChargingEnabled = $derived(
-		(chargingInfo.userSettings.chargeUntilMinBattery ?? 0) > 0
+		(chargingInfo.userSettings.chargeUntilMinBattery ?? 100) < 100
 	);
 
 	let status = $state('no_car' as 'force' | 'excess' | 'battery' | 'not_charging' | 'no_car');
@@ -36,9 +36,9 @@
 	);
 
 	const statusOrder = $derived.by(() => {
-		if (status === 'excess') return ['excess', 'force', 'battery'];
-		else if (status === 'battery') return ['battery', 'force', 'excess'];
-		return ['force', 'excess', 'battery'];
+		// if (status === 'excess') return ['excess', 'force', 'battery'];
+		// else if (status === 'battery') return ['battery', 'force', 'excess'];
+		return ['excess', 'force', 'battery'];
 	});
 </script>
 
@@ -58,27 +58,29 @@
 	</div>
 {/snippet}
 
-{#snippet renderStatusLine(isActive, text)}
-	<div class={isActive ? 'text-xl ' + mainColor : 'text-inactive text-sm'}>{text}</div>
-{/snippet}
-
-{#snippet renderForceChargingLine()}
-	{#if status === 'force'}
-		{@render renderStatusLine(true, 'force charging')}
-	{:else if isForceChargingEnabled}
-		{@render renderStatusLine(false, 'force charging enabled')}
-	{:else}
-		{@render renderStatusLine(false, 'force charging disabled')}
-	{/if}
+{#snippet renderStatusLine(isActive, text, isEnabled = false)}
+	<div class={isActive ? 'text-xl ' + mainColor : isEnabled ? 'text-md' : 'text-inactive text-sm'}>
+		{text}
+	</div>
 {/snippet}
 
 {#snippet renderExcessChargingLine()}
 	{#if status === 'excess'}
 		{@render renderStatusLine(true, 'excess charging')}
 	{:else if isExcessChargingEnabled}
-		{@render renderStatusLine(false, 'excess charging enabled')}
+		{@render renderStatusLine(false, 'excess charging enabled', true)}
 	{:else}
-		{@render renderStatusLine(false, 'excess charging disabled')}
+		{@render renderStatusLine(false, 'excess charging disabled', false)}
+	{/if}
+{/snippet}
+
+{#snippet renderForceChargingLine()}
+	{#if status === 'force'}
+		{@render renderStatusLine(true, 'force charging')}
+	{:else if isForceChargingEnabled}
+		{@render renderStatusLine(false, 'force charging enabled', true)}
+	{:else}
+		{@render renderStatusLine(false, 'force charging disabled', false)}
 	{/if}
 {/snippet}
 
@@ -88,10 +90,11 @@
 	{:else if isBatteryChargingEnabled}
 		{@render renderStatusLine(
 			false,
-			'battery charging enabled (>' + chargingInfo.userSettings.chargeUntilMinBattery + '%)'
+			'battery charging enabled (>' + chargingInfo.userSettings.chargeUntilMinBattery + '%)',
+			true
 		)}
 	{:else}
-		{@render renderStatusLine(false, 'battery charging disabled')}
+		{@render renderStatusLine(false, 'battery charging disabled', false)}
 	{/if}
 {/snippet}
 
