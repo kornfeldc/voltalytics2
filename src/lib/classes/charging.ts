@@ -119,7 +119,7 @@ export class ChargingApi {
 
 		// check the difference between currently charging kw and suggested kw
 		if (
-			ret.suggestedKw > 0 &&
+			ret.suggestedKw >= 0 &&
 			Math.abs(ret.suggestedKw - (status.kw ?? 0)) < this.userSettings.kwDifferenceChange
 		) {
 			ret.suggestedKw = -1;

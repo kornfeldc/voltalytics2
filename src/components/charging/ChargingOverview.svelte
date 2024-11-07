@@ -63,6 +63,19 @@
 
 		// show result as toast
 	};
+
+	const getForceChargeSfx = (): string => {
+		let ret = ' ';
+		if (chargingInfo.userSettings.useAwattar)
+			ret +=
+				' (' +
+				chargingInfo.userSettings.forceChargeKw +
+				' kw, price < ' +
+				chargingInfo.userSettings.forceChargeUnderCent +
+				' cent)';
+		else ret += ' (' + chargingInfo.userSettings.forceChargeKw + ' kw)';
+		return ret;
+	};
 </script>
 
 {#snippet skeleton()}
@@ -81,9 +94,9 @@
 	</div>
 {/snippet}
 
-{#snippet renderStatusLine(isActive, text, isEnabled = false)}
+{#snippet renderStatusLine(isActive, text, subText = '', isEnabled = false)}
 	<div class={isActive ? 'text-xl ' + mainColor : isEnabled ? 'text-md' : 'text-inactive text-sm'}>
-		{text}
+		{text}<span class="text-xs">{subText}</span>
 	</div>
 {/snippet}
 
@@ -91,9 +104,9 @@
 	{#if status === 'excess'}
 		{@render renderStatusLine(true, 'excess charging')}
 	{:else if isExcessChargingEnabled}
-		{@render renderStatusLine(false, 'excess charging enabled', true)}
+		{@render renderStatusLine(false, 'excess charging enabled', '', true)}
 	{:else}
-		{@render renderStatusLine(false, 'excess charging disabled', false)}
+		{@render renderStatusLine(false, 'excess charging disabled', '', false)}
 	{/if}
 {/snippet}
 
@@ -101,9 +114,9 @@
 	{#if status === 'force'}
 		{@render renderStatusLine(true, 'force charging')}
 	{:else if isForceChargingEnabled}
-		{@render renderStatusLine(false, 'force charging enabled', true)}
+		{@render renderStatusLine(false, 'force charging enabled', getForceChargeSfx(), true)}
 	{:else}
-		{@render renderStatusLine(false, 'force charging disabled', false)}
+		{@render renderStatusLine(false, 'force charging disabled', '', false)}
 	{/if}
 {/snippet}
 
@@ -113,11 +126,12 @@
 	{:else if isBatteryChargingEnabled}
 		{@render renderStatusLine(
 			false,
-			'battery charging enabled (>' + chargingInfo.userSettings.chargeUntilMinBattery + '%)',
+			'battery charging enabled',
+			'(>' + chargingInfo.userSettings.chargeUntilMinBattery + '%)',
 			true
 		)}
 	{:else}
-		{@render renderStatusLine(false, 'battery charging disabled', false)}
+		{@render renderStatusLine(false, 'battery charging disabled', '', false)}
 	{/if}
 {/snippet}
 
@@ -166,7 +180,7 @@
 	{#await getChargingInfo()}
 		{@render skeleton()}
 	{:then _}
-		{@const iconClass = 'mt-4 h-8 w-8 text-slate-400'}
+		{@const iconClass = 'mt-2 h-8 w-8 text-slate-400'}
 		<div class="mb-4 flex flex items-center justify-center gap-2" onclick={(event) => click(event)}>
 			{#if status === 'battery'}
 				<BatteryIcon class={iconClass} />
