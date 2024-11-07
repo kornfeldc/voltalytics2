@@ -25,7 +25,27 @@ export interface IUserSettings {
 	forceChargeIsOn?: boolean;
 	forceChargeUnderCent?: number;
 	forceChargeKw?: number;
+
+	minChargingPower: number;
+	maxChargingPower: number;
+	minMinutesOldForAction: number;
+	kwFromBattery: number;
+	maxKwFor1Phase: number;
+	forceChargeUnderCentFallback: number;
+	currentPriceFallback: number;
+	kwDifferenceChange: number;
 }
+
+const FixedUserSettings = {
+	minChargingPower: 1.5,
+	maxChargingPower: 9,
+	minMinutesOldForAction: 10,
+	kwFromBattery: 4.5,
+	maxKwFor1Phase: 3,
+	forceChargeUnderCentFallback: 20,
+	currentPriceFallback: 50,
+	kwDifferenceChange: 0.3
+};
 
 export class Db {
 	static supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -95,7 +115,9 @@ export class Db {
 
 			forceChargeIsOn: dbUser.forceChargeIsOn,
 			forceChargeUnderCent: dbUser.forceChargeUnderCent,
-			forceChargeKw: dbUser.forceChargeKw
+			forceChargeKw: dbUser.forceChargeKw,
+
+			...FixedUserSettings
 		} as IUserSettings;
 	}
 

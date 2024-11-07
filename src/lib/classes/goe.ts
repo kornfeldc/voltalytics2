@@ -1,5 +1,9 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
-import type { IWallBoxMethods, IWallBoxRealTimeData } from '$lib/classes/wallBox';
+import type {
+	IWallBoxChargingResponse,
+	IWallBoxMethods,
+	IWallBoxRealTimeData
+} from '$lib/classes/wallBox';
 
 export class GoeApi implements IWallBoxMethods {
 	userSettings: IUserSettings;
@@ -7,6 +11,79 @@ export class GoeApi implements IWallBoxMethods {
 
 	constructor(userSettings: IUserSettings) {
 		this.userSettings = userSettings;
+	}
+
+	setChargingSpeed(kw: number): Promise<IWallBoxChargingResponse> {
+		const phaseAndAmp = this.getPhaseAndAmpFromKw(kw);
+		return this.setRawChargingSpeed(phaseAndAmp.ampere, phaseAndAmp.phase);
+	}
+
+	private async setRawChargingSpeed(
+		current: number,
+		phase: number
+	): Promise<IWallBoxChargingResponse> {
+		phase = phase == 3 ? 2 : phase;
+		const charge = current > 0 && phase > 0;
+		let endpoint = !charge
+			? `${this.getEndpoint()}/api/set?frc=1`
+			: `${this.getEndpoint()}/api/set?&amp=${current}&psm=${phase}&frc=2`;
+
+		const response = await fetch(endpoint, {
+			...this.getHeader(),
+			method: 'GET'
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			console.log('setChargingSpeed response', data);
+			return { status: 'success' };
+		}
+		return {
+			status: 'error',
+			message: response.statusText
+		};
+	}
+
+	getPhaseAndAmpFromKw(kw: number): { phase: number; ampere: number } {
+		if (kw < 1) return { phase: 0, ampere: 0 };
+
+		let phase = 1;
+		let ampere: number; // Minimum current setting
+
+		// Assuming a voltage of 230V for single-phase and 400V for three-phase
+		const singlePhaseVoltage = 230;
+		const threePhaseVoltage = 400;
+
+		// Calculate the current for single-phase
+		const singlePhaseCurrent = (kw * 1000) / singlePhaseVoltage;
+
+		// If the current exceeds 16A (common limit for single-phase), switch to three-phase
+		if (singlePhaseCurrent > 16) {
+			phase = 3;
+			ampere = (kw * 1000) / (threePhaseVoltage * Math.sqrt(3));
+		} else {
+			ampere = singlePhaseCurrent;
+		}
+
+		// Round the current to the nearest whole number
+		ampere = Math.round(ampere);
+
+		// Ensure current is within safe and valid range
+		if (phase === 1 && ampere > 32) {
+			ampere = 32; // Upper limit for single-phase
+		} else if (phase === 3 && ampere > 32) {
+			ampere = 32; // Upper limit for three-phase
+		} else if (ampere < 6) {
+			ampere = 6; // Lower limit for safety
+		}
+
+		// dont charge with "too high" kw on 1 phase, switch to 3 phases instead
+		if (kw > this.userSettings.maxKwFor1Phase && phase === 1) {
+			phase = 3;
+			ampere = 6;
+		}
+
+		return { phase, ampere };
 	}
 
 	private getEndpoint() {

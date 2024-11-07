@@ -18,3 +18,18 @@ export async function GET({ locals, url }) {
 
 	return json(chargingInfo);
 }
+
+export async function POST({ request, locals }): Promise<Response> {
+	const { kw } = await request.json();
+
+	vConsole.log('api call - set charging', kw);
+	const session = await locals.auth();
+	if (!session?.user?.email) redirect(307, '/');
+
+	const userSettings = await Db.getUserSettings(session.user.email);
+	if (!userSettings) redirect(307, '/');
+
+	const wallBoxApi = new WallBoxApi(userSettings!);
+	const result = await wallBoxApi.setChargingSpeed(kw);
+	return json(result, { status: 200 });
+}

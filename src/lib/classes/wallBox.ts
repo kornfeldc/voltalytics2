@@ -21,14 +21,31 @@ export interface IWallBoxRealTimeData extends IWallBoxBaseData {
 	carStatus: 'waiting' | 'charging' | 'charged' | 'unknown';
 }
 
+export interface IWallBoxChargingResponse {
+	status: 'success' | 'error';
+	message?: string;
+}
+
 export interface IWallBoxMethods {
 	getRealTimeData(): Promise<IWallBoxRealTimeData | undefined>;
+	getPhaseAndAmpFromKw(kw: number): { phase: number; ampere: number };
+	setChargingSpeed(kw: number): Promise<IWallBoxChargingResponse>;
 }
 
 export class WallBoxApi implements IWallBoxMethods {
 	userSettings: IUserSettings;
 	constructor(userSettings: IUserSettings) {
 		this.userSettings = userSettings;
+	}
+
+	setChargingSpeed(kw: number): Promise<IWallBoxChargingResponse> {
+		const apiObj = this.getWallBoxApiObj();
+		if (!apiObj) return Promise.reject('No wallbox API object found.');
+		return apiObj.setChargingSpeed(kw);
+	}
+
+	getPhaseAndAmpFromKw(kw: number): { phase: number; ampere: number } {
+		return this.getWallBoxApiObj()?.getPhaseAndAmpFromKw(kw) ?? { phase: 0, ampere: 0 };
 	}
 
 	getRealTimeData(): Promise<IWallBoxRealTimeData | undefined> {

@@ -40,6 +40,29 @@
 		// else if (status === 'battery') return ['battery', 'force', 'excess'];
 		return ['excess', 'force', 'battery'];
 	});
+
+	const click = async (event: MouseEvent) => {
+		if (chargingInfo?.suggestion?.suggestedKw < 0) return;
+
+		event.stopPropagation();
+		event.preventDefault();
+		await changeChargingPower(chargingInfo.suggestion.suggestedKw);
+	};
+
+	const changeChargingPower = async (kw: number) => {
+		const response = await fetch(`/api/charging`, {
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			method: 'POST',
+			body: JSON.stringify({ kw })
+		});
+		const result = await response.json();
+
+		console.log('result of set charging', result);
+
+		// show result as toast
+	};
 </script>
 
 {#snippet skeleton()}
@@ -113,6 +136,18 @@
 	</span>
 {/snippet}
 
+{#snippet renderSubTitle()}
+	<span class="text-inactive text-xs">
+		{#if chargingInfo?.suggestion.suggestedKw === 0}
+			suggestion: don't charge
+		{:else if chargingInfo?.suggestion.suggestedKw > 0}
+			suggestion: charge with {chargingInfo?.suggestion.suggestedKw}kw
+		{:else}
+			&nbsp;
+		{/if}
+	</span>
+{/snippet}
+
 {#snippet renderFlow()}
 	<div class="flex h-5 w-full">
 		<div class="relative w-full">
@@ -127,12 +162,12 @@
 	</div>
 {/snippet}
 
-<div class="h-[8.5em]">
+<div class="h-[9.5em]">
 	{#await getChargingInfo()}
 		{@render skeleton()}
 	{:then _}
 		{@const iconClass = 'mt-4 h-8 w-8 text-slate-400'}
-		<div class="mb-4 mt-2 flex flex items-center justify-center gap-2">
+		<div class="mb-4 flex flex items-center justify-center gap-2" onclick={(event) => click(event)}>
 			{#if status === 'battery'}
 				<BatteryIcon class={iconClass} />
 			{:else if status === 'excess'}
@@ -145,6 +180,9 @@
 					{@render renderTitle()}
 				</div>
 				{@render renderFlow()}
+				<div class="mt-[-1em]">
+					{@render renderSubTitle()}
+				</div>
 			</div>
 			{#if status === 'no_car'}
 				<UnplugIcon class="{iconClass} text-inactive" />

@@ -1,7 +1,8 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
-import { type IWallBoxMethods, type IWallBoxRealTimeData, WallBoxApi } from '$lib/classes/wallBox';
+import { WallBoxApi } from '$lib/classes/wallBox';
 import { InverterApi } from '$lib/classes/interver';
 import { AwattarApi } from '$lib/classes/awattar';
+import moment from 'moment';
 
 export interface IChargingStatus {
 	gotInverterData: boolean;
@@ -23,6 +24,7 @@ export interface IChargingStatus {
 export interface IChargingSuggestion {
 	allDataAvailable: boolean;
 	currentChargingReason: '' | 'force' | 'excess' | 'battery';
+	suggestedKw: number;
 }
 
 export interface IChargingInfo extends IChargingStatus {
@@ -66,12 +68,12 @@ export class ChargingApi {
 		} as IChargingStatus;
 
 		// fake data for tesing
-		// chargingStatus.kw = 5;
-		// chargingStatus.powerUsage = 6;
-		// chargingStatus.powerProduction = 3;
+		// chargingStatus.kw = 4.5;
+		// chargingStatus.powerUsage = 5;
+		// chargingStatus.powerProduction = 0;
 		// chargingStatus.carStatus = 'charging';
 		// chargingStatus.batterySoc = 80;
-		// this.userSettings.chargeUntilMinBattery = 70;
+		// this.userSettings.chargeUntilMinBattery = 100;
 
 		return {
 			...chargingStatus,
@@ -87,16 +89,90 @@ export class ChargingApi {
 		const usageWithoutCar = (status.powerUsage ?? 0) - (status.kw ?? 0);
 		const exceedingKw = (status.powerProduction ?? 0) - usageWithoutCar;
 
+		ret.currentChargingReason = this.getCurrentChargingReason(
+			currentlyCharging,
+			status,
+			exceedingKw
+		);
+
+		let forceChargeSuggestion = this.getForceChargeSuggestion(status);
+		let batterySuggestion = this.getBatterySuggestion(status);
+		let excessSuggestion = this.getExcessChargeSuggestion(status);
+
+		if (excessSuggestion === -1) ret.suggestedKw = excessSuggestion;
+		else {
+			ret.suggestedKw = Math.max(...[forceChargeSuggestion, excessSuggestion, batterySuggestion]);
+			// fit into boundaries
+			if (ret.suggestedKw > 0 && ret.suggestedKw < this.userSettings.minChargingPower)
+				ret.suggestedKw = this.userSettings.minChargingPower;
+			if (ret.suggestedKw > this.userSettings.maxChargingPower)
+				ret.suggestedKw = this.userSettings.maxChargingPower;
+		}
+
+		console.log('calculated suggestions', {
+			forceChargeSuggestion,
+			batterySuggestion,
+			excessSuggestion,
+			suggestedKw: ret.suggestedKw,
+			diff: Math.abs(ret.suggestedKw - (status.kw ?? 0))
+		});
+
+		// check the difference between currently charging kw and suggested kw
+		if (
+			ret.suggestedKw > 0 &&
+			Math.abs(ret.suggestedKw - (status.kw ?? 0)) < this.userSettings.kwDifferenceChange
+		) {
+			ret.suggestedKw = -1;
+		}
+
+		return ret;
+	}
+
+	private getExcessChargeSuggestion(status: IChargingStatus): number {
+		if (!this.userSettings.chargeWithExcessIsOn) return 0;
+
+		const usageWithoutCar = (status.powerUsage ?? 0) - (status.kw ?? 0);
+		const exceedingKw = (status.powerProduction ?? 0) - usageWithoutCar;
+		if (exceedingKw < 1) return 0;
+
+		const inverterStatusMinutesOld = moment().diff(moment(status.inverterTimestamp), 'minutes');
+		if (inverterStatusMinutesOld >= this.userSettings.minMinutesOldForAction) return -1;
+
+		return exceedingKw;
+	}
+
+	private getForceChargeSuggestion(status: IChargingStatus): number {
+		if (!this.userSettings.forceChargeIsOn) return 0;
+
+		if (!this.userSettings.useAwattar) return this.userSettings.forceChargeKw ?? 5;
+
+		const currentPrice = status.currentPrice ?? this.userSettings.currentPriceFallback;
+		const forceChargeUnderCent =
+			this.userSettings.forceChargeUnderCent ?? this.userSettings.forceChargeUnderCentFallback;
+
+		if (currentPrice < forceChargeUnderCent) return this.userSettings.forceChargeKw ?? 5;
+		return 0;
+	}
+
+	private getBatterySuggestion(status: IChargingStatus): number {
+		if ((status.batterySoc ?? 0) > (this.userSettings.chargeUntilMinBattery ?? 100))
+			return this.userSettings.kwFromBattery;
+		return 0;
+	}
+
+	private getCurrentChargingReason(
+		currentlyCharging: boolean,
+		status: IChargingStatus,
+		exceedingKw: number
+	) {
 		if (
 			currentlyCharging &&
 			(status.batterySoc ?? 0) > (this.userSettings.chargeUntilMinBattery ?? 0)
 		)
-			ret.currentChargingReason = 'battery';
+			return 'battery';
 		else if (currentlyCharging && this.userSettings.chargeWithExcessIsOn && exceedingKw > 0)
-			ret.currentChargingReason = 'excess';
-		else if (currentlyCharging) ret.currentChargingReason = 'force';
-		else ret.currentChargingReason = '';
-
-		return ret;
+			return 'excess';
+		else if (currentlyCharging) return 'force';
+		return '';
 	}
 }
