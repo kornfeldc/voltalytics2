@@ -2,10 +2,18 @@
 	import type { AwattarEntry } from '$lib/classes/awattar';
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { awattarState } from '$lib/state/awattarState.svelte';
 
 	const getEntries = async (): Promise<AwattarEntry[]> => {
 		const res = await fetch(`/api/awattar?hours=5`);
-		return await res.json();
+		const result = await res.json();
+
+		const now = moment().startOf('hour');
+		result.forEach((entry: AwattarEntry) => {
+			const entryFrom = moment(entry.time);
+			if (now.isSame(entryFrom, 'hour')) awattarState.currentPrice = entry.grossPrice;
+		});
+		return result;
 	};
 
 	const getFormattedFromTo = (entry: AwattarEntry): string => {

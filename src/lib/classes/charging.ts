@@ -109,14 +109,6 @@ export class ChargingApi {
 				ret.suggestedKw = this.userSettings.maxChargingPower;
 		}
 
-		console.log('calculated suggestions', {
-			forceChargeSuggestion,
-			batterySuggestion,
-			excessSuggestion,
-			suggestedKw: ret.suggestedKw,
-			diff: Math.abs(ret.suggestedKw - (status.kw ?? 0))
-		});
-
 		// check the difference between currently charging kw and suggested kw
 		if (
 			ret.suggestedKw >= 0 &&

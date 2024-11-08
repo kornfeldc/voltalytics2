@@ -1,4 +1,4 @@
-﻿<script>
+﻿<script lang="ts">
 	import InverterLiveGraph from '../inverter/InverterLiveGraph.svelte';
 	import InverterDayChartContainer from '../inverter/InverterDayChartContainer.svelte';
 </script>

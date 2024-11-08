@@ -15,6 +15,5 @@ export async function GET({ locals, url }) {
 	const range = url.searchParams.get('range')! as 'day' | 'month' | 'year';
 	const inverterApi = new InverterApi(userSettings!);
 	const statisticsData = (await inverterApi.getStatistics({ referenceDate, range })) ?? [];
-	vConsole.log('api call - statistics - got result', statisticsData);
 	return json(statisticsData);
 }
