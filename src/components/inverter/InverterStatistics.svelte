@@ -3,6 +3,7 @@
 	import moment from 'moment/moment';
 	import InverterLiveGraphSkeleton from './InverterLiveGraphSkeleton.svelte';
 	import InverterStatisticsSkeleton from './InverterStatisticsSkeleton.svelte';
+	import { CircleSlashedIcon } from 'lucide-svelte';
 
 	interface IProps {
 		referenceDate: string;
@@ -18,6 +19,14 @@
 		);
 		statisticsData = (await res.json())[0];
 	};
+
+	let isEmpty = $derived.by(() => {
+		let empty = true;
+		for (const prop in statisticsData) {
+			if (((statisticsData as any)[prop] ?? 0) !== 0) empty = false;
+		}
+		return empty;
+	});
 
 	const gridConfig = [
 		[
@@ -46,24 +55,33 @@
 	{#await getStatisticsData()}
 		<InverterStatisticsSkeleton />
 	{:then _}
-		<div class="grid grid-cols-2 gap-1">
-			{#each gridConfig as lineConfig}
-				{#each lineConfig as columnConfig}
-					{#if columnConfig.length === 0}
-						<div></div>
-					{:else}
-						<div class={columnConfig[1]}>
-							<div class="whitespace-nowrap text-xl tracking-tight">
-								{formatValue(statisticsData[columnConfig[0]])}
-								<span class="text-xs">kWh</span>
+		{#if isEmpty}
+			<div
+				class="text-inactive flex h-full w-full flex-col items-center justify-center text-center"
+			>
+				<CircleSlashedIcon />
+				no data
+			</div>
+		{:else}
+			<div class="grid grid-cols-2 gap-1">
+				{#each gridConfig as lineConfig}
+					{#each lineConfig as columnConfig}
+						{#if columnConfig.length === 0}
+							<div></div>
+						{:else}
+							<div class={columnConfig[1]}>
+								<div class="whitespace-nowrap text-xl tracking-tight">
+									{formatValue(statisticsData[columnConfig[0]])}
+									<span class="text-xs">kWh</span>
+								</div>
+								<div class="text-inactive whitespace-nowrap text-xs">
+									{columnConfig[2]}
+								</div>
 							</div>
-							<div class="text-inactive whitespace-nowrap text-xs">
-								{columnConfig[2]}
-							</div>
-						</div>
-					{/if}
+						{/if}
+					{/each}
 				{/each}
-			{/each}
-		</div>
+			</div>
+		{/if}
 	{/await}
 </div>

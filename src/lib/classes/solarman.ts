@@ -120,7 +120,7 @@ export class SolarmanApi implements IInverterMethods {
 		if (!token) return;
 
 		const stationId = await this.getStationId(token);
-		if (!stationId) return;
+		if (!stationId) return this.getEmptyInverterStatistic();
 
 		const url = `${this.solarManUrl}/station/v1.0/history?language=en`;
 		const body = {
@@ -150,15 +150,30 @@ export class SolarmanApi implements IInverterMethods {
 			body: JSON.stringify(body)
 		});
 
-		if (!response.ok) return;
+		if (!response.ok) return this.getEmptyInverterStatistic();
 
 		const result = await response.json();
-		if (!result?.requestId) return;
+		if (!result?.requestId) return this.getEmptyInverterStatistic();
 
-		if (!result.success) return;
+		if (!result.success) return this.getEmptyInverterStatistic();
 
 		const stationData = result.stationDataItems as ISolarManFrameStationDataItem[];
-		return stationData.map((x) => this.mapStatToInverterResult(x));
+		const ret = stationData.map((x) => this.mapStatToInverterResult(x));
+		if (ret.length === 0) return this.getEmptyInverterStatistic();
+		return ret;
+	}
+
+	private getEmptyInverterStatistic(): Array<IInverterStatistic> {
+		return [
+			{
+				powerFromGrid: 0,
+				powerToGrid: 0,
+				powerFromBattery: 0,
+				powerToBattery: 0,
+				powerProduction: 0,
+				powerUsage: 0
+			}
+		] as IInverterStatistic[];
 	}
 
 	async getStationId(authToken: string | undefined): Promise<string | undefined> {
