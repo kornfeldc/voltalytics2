@@ -13,13 +13,17 @@
 	};
 </script>
 
-<div class="h-[12em] pt-4">
-	{#await getData()}
+{#await getData()}
+	<div class="h-[12em] pt-4">
 		<div class="flex w-full items-center justify-center gap-2 pt-4 align-middle">
 			<Skeleton class="h-[9em] w-[1em]"></Skeleton>
 			<Skeleton class="h-[1em] grow"></Skeleton>
 		</div>
-	{:then data}
-		<InverterDayChart {data} showLegend={false} showWholeDay={false} />
-	{/await}
-</div>
+	</div>
+{:then data}
+	{#if data.length >= 0}
+		<div class="h-[12em] pt-4">
+			<InverterDayChart {data} showLegend={false} showWholeDay={false} />
+		</div>
+	{/if}
+{/await}

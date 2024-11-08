@@ -1,0 +1,15 @@
+﻿### get sites
+
+GET {{mockUrl}}/sites
+Accept: application/json
+X-API-Key: {{apiKey}}
+X-Account-Key: {{apiKey}}
+
+### 
+
+GET {{mockUrl}}/sites/{{siteId}}/power-flow
+Accept: application/json
+X-API-Key: {{apiKey}}
+X-Account-Key: {{accountKey}}
+
+###
