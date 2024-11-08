@@ -6,7 +6,7 @@
 
 	interface IProps {
 		referenceDate: string;
-		range: 'day' | 'month' | 'year';
+		range?: 'day' | 'month' | 'year';
 	}
 
 	let { referenceDate = moment().format('YYYY-MM-DD'), range = 'day' }: IProps = $props();

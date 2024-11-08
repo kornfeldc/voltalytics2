@@ -7,6 +7,7 @@
 	import DashboardPrices from '../../../components/dashboard/DashboardPrices.svelte';
 	import DashboardCharging from '../../../components/dashboard/DashboardCharging.svelte';
 	import { drawerState } from '$lib/state/drawerState.svelte.js';
+	import moment from 'moment';
 	let { data } = $props();
 
 	const cardClass = 'shadow-lg shadow-slate-800 border-slate-900';
@@ -43,13 +44,17 @@
 				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
 			</Card.Root>
 
-			<Card.Root class={cardClass}>
-				{@render card('today', '', dashboardToday)}
-			</Card.Root>
+			<a href={'/v/inverter/day/' + moment().format('YYYY-MM-DD')}>
+				<Card.Root class={cardClass}>
+					{@render card('today', '', dashboardToday)}
+				</Card.Root>
+			</a>
 
-			<Card.Root class={cardClass}>
-				{@render card('month', '', dashboardMonth)}
-			</Card.Root>
+			<a href={'/v/inverter/month/' + moment().format('YYYY-MM')}>
+				<Card.Root class={cardClass}>
+					{@render card('month', '', dashboardMonth)}
+				</Card.Root>
+			</a>
 		{/if}
 
 		{#if userSettings?.useAwattar}

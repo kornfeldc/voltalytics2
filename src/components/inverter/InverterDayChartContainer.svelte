@@ -4,11 +4,10 @@
 	import InverterDayChart from './InverterDayChart.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
+	let { day = moment().format('YYYY-MM-DD') }: { day?: string } = $props();
 	let data: IInverterRealTimeData[] = $state([]);
 	const getData = async (): Promise<IInverterRealTimeData[]> => {
-		const res = await fetch(
-			`/api/inverter/timeframe?dayFrom=${moment().format('YYYY-MM-DD')}&dayTo=${moment().format('YYYY-MM-DD')}`
-		);
+		const res = await fetch(`/api/inverter/timeframe?dayFrom=${day}&dayTo=${day}`);
 		return await res.json();
 	};
 </script>

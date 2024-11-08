@@ -1,5 +1,6 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
 import { SolarmanApi } from '$lib/classes/solarman';
+import moment from 'moment';
 
 /**
  * Interface representing the base data for an inverter.
@@ -63,6 +64,8 @@ export class InverterApi implements IInverterMethods {
 	}): Promise<IInverterStatistic[] | undefined> {
 		const apiObj = this.getInverterApiObj();
 		if (!apiObj) return Promise.reject('No inverter API object found.');
+
+		if (moment(referenceDate).isAfter(moment(), range)) return [];
 		return apiObj.getStatistics({ referenceDate, range });
 	}
 

@@ -135,6 +135,10 @@ export class SolarmanApi implements IInverterMethods {
 			body.timeType = 3;
 			body.startTime = moment(referenceDate).format('YYYY-MM');
 			body.endTime = moment(referenceDate).format('YYYY-MM');
+		} else if (range === 'year') {
+			body.timeType = 4;
+			body.startTime = moment(referenceDate).startOf('year').format('YYYY');
+			body.endTime = moment(referenceDate).endOf('year').format('YYYY');
 		}
 
 		const response = await fetch(url, {
