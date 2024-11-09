@@ -33,6 +33,10 @@ export interface IUserSettings {
 	autoExecuteSuggestions: boolean;
 	autoTurnOffForceCharging: boolean;
 	lastForceChargeReset?: Date;
+	carBatteryKwh?: number;
+	carBatteryCurrentPercent?: number;
+	carBatteryTargetPercent?: number;
+	carBatteryTargetHour?: number;
 
 	minChargingPower: number;
 	maxChargingPower: number;
@@ -129,6 +133,11 @@ export class Db {
 			autoExecuteSuggestions: dbUser.autoExecuteSuggestions,
 			autoTurnOffForceCharging: dbUser.autoTurnOffForceCharging,
 
+			carBatteryKwh: dbUser.carBatteryKwh ?? 70,
+			carBatteryCurrentPercent: dbUser.carBatteryCurrentPercent ?? 50,
+			carBatteryTargetPercent: dbUser.carBatteryTargetPercent ?? 50,
+			carBatteryTargetHour: dbUser.carBatteryTargetHour ?? 6,
+
 			lastForceChargeReset: dbUser.lastForceChargeReset
 				? moment(dbUser.lastForceChargeReset).toDate()
 				: undefined,
@@ -173,7 +182,11 @@ export class Db {
 				autoTurnOffForceCharging: settings.autoTurnOffForceCharging,
 				goEIsOn: settings.currentWallbox === 'goe',
 				goESerial: settings.goESerial,
-				goEApiToken: settings.goEApiToken
+				goEApiToken: settings.goEApiToken,
+				carBatteryKwh: settings.carBatteryKwh,
+				carBatteryCurrentPercent: settings.carBatteryCurrentPercent,
+				carBatteryTargetPercent: settings.carBatteryTargetPercent,
+				carBatteryTargetHour: settings.carBatteryTargetHour
 			})
 			.eq('email', email);
 	}

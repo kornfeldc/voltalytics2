@@ -16,12 +16,17 @@
 	import { page } from '$app/stores';
 	import { UserIcon } from 'lucide-svelte';
 	import { type IUserSettings } from '$lib/classes/db';
+	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
+	import type { ICalculationSuggestion } from '$lib/classes/charging';
 
 	let { userSettings, saved }: { userSettings: IUserSettings; saved: () => void } = $props();
 	let formData = $state(userSettings);
 
+	let calculating = $state(false);
+	let calculationResult = $state({} as ICalculationSuggestion);
+
 	let initialTab = $derived.by(() => {
-		return formData.solarManAppEmail ? 'settings' : 'setup';
+		return formData.solarManAppEmail || formData.solarEdgeApiKey ? 'settings' : 'setup';
 	});
 
 	const inverterOptions = [
@@ -57,6 +62,11 @@
 	};
 
 	const save = async () => {
+		await saveWithoutUi();
+		saved();
+	};
+
+	const saveWithoutUi = async () => {
 		const body = JSON.stringify(formData);
 		const res = await fetch('/api/save_settings', {
 			method: 'POST',
@@ -66,11 +76,64 @@
 			body
 		});
 		await res.json();
-		saved();
+	};
+
+	const calculate = async () => {
+		calculating = true;
+		await saveWithoutUi();
+		const response = await fetch('/api/calculation');
+		calculationResult = await response.json();
+		calculating = false;
+	};
+
+	const useCalculationResult = async () => {
+		formData.forceChargeIsOn = true;
+		formData.forceChargeKw = calculationResult.suggestedKwToSet;
+		formData.forceChargeUnderCent = calculationResult.suggestedPriceToSet;
+		await save();
 	};
 </script>
 
-<div class="w-full p-4">
+{#snippet renderCalculationResult()}
+	{#if calculationResult?.status}
+		<Card.Root class="mt-4">
+			<Card.Content class="p-4">
+				{#if calculationResult.status === 'no_suggestion'}
+					no suggestion available
+				{:else if calculationResult.status === 'suggestion'}
+					<h1>Result</h1>
+					<div class="grid grid-cols-4 gap-2 pt-2">
+						<div class="col-span-3">Suggested max cents per kWh:</div>
+						<div>
+							{calculationResult.suggestedPriceToSet}
+						</div>
+
+						<div class="col-span-3">Suggested kw:</div>
+						<div>
+							{calculationResult.suggestedKwToSet}
+						</div>
+
+						<div class="col-span-3">Hours charging:</div>
+						<div>
+							{calculationResult.hoursCharging}
+						</div>
+
+						<div class="col-span-3">Estimated price:</div>
+						<div>
+							{calculationResult.estimatedPrice}
+						</div>
+
+						<Button class="col-span-4" onclick={() => useCalculationResult()}
+							>Use as force charging parameters</Button
+						>
+					</div>
+				{/if}
+			</Card.Content>
+		</Card.Root>
+	{/if}
+{/snippet}
+
+{#snippet renderUserCard()}
 	<Card.Root>
 		<Card.Content class="p-2">
 			<div class="flex items-center">
@@ -85,9 +148,13 @@
 			</div>
 		</Card.Content>
 	</Card.Root>
+{/snippet}
 
+<div class="w-full p-4">
 	<Tabs.Root value={initialTab}>
 		<Tabs.Content value="setup">
+			{@render renderUserCard()}
+
 			<div class="mt-8 grid grid-cols-4 items-center gap-y-2">
 				<Label>Inverter</Label>
 				<Select.Root selected={currentInverter} onSelectedChange={changeInverter}>
@@ -251,10 +318,80 @@
 				{/if}
 			</div>
 		</Tabs.Content>
+
+		<Tabs.Content value="calculator">
+			<div class="mb-8 mt-8 grid grid-cols-4 items-center gap-y-2">
+				<Label class="col-span-3">Vehicle Battery Capacity in kWh</Label>
+				<Input
+					type="number"
+					min="5"
+					max="120"
+					class="col-span-1"
+					bind:value={formData.carBatteryKwh}
+				></Input>
+
+				<Label class="col-span-4 mt-3">Current State of Charge in %</Label>
+				<Slider
+					class="col-span-3 pr-4 "
+					value={[formData.carBatteryCurrentPercent ?? 50]}
+					onValueChange={(v) => {
+						formData.carBatteryCurrentPercent = v[0];
+					}}
+					min={1}
+					max={100}
+					step={1}
+				/>
+				<Input type="number" readonly bind:value={formData.carBatteryCurrentPercent} />
+
+				<Label class="col-span-4 mt-3">Target State of Charge in %</Label>
+				<Slider
+					class="col-span-3 pr-4 "
+					value={[formData.carBatteryTargetPercent ?? 80]}
+					onValueChange={(v) => {
+						formData.carBatteryTargetPercent = v[0];
+					}}
+					min={1}
+					max={100}
+					step={1}
+				/>
+				<Input type="number" readonly bind:value={formData.carBatteryTargetPercent} />
+
+				<Label class="col-span-4 mt-3">Target Hour</Label>
+				<Slider
+					class="col-span-3 pr-4 "
+					value={[formData.carBatteryTargetHour ?? 6]}
+					onValueChange={(v) => {
+						formData.carBatteryTargetHour = v[0];
+					}}
+					min={0}
+					max={23}
+					step={1}
+				/>
+				<Input type="number" readonly bind:value={formData.carBatteryTargetHour} />
+			</div>
+
+			<Button variant="outline" class="w-full border-primary" onclick={() => calculate()}
+				>CALCULATE</Button
+			>
+
+			{#if calculating}
+				<LoaderCircle class="mr-2 h-12 w-12 animate-spin" />
+			{:else}
+				{@render renderCalculationResult()}
+			{/if}
+		</Tabs.Content>
+
 		{#if isChargingPossible}
-			<Tabs.List class="mt-4 grid w-full grid-cols-2">
+			<Tabs.List
+				class="mt-4 grid w-full {isChargingPossible && formData.useAwattar
+					? 'grid-cols-3'
+					: 'grid-cols-2'}"
+			>
 				<Tabs.Trigger value="setup">Setup</Tabs.Trigger>
 				<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
+				{#if isChargingPossible && formData.useAwattar}
+					<Tabs.Trigger value="calculator">Calculator</Tabs.Trigger>
+				{/if}
 			</Tabs.List>
 		{/if}
 	</Tabs.Root>

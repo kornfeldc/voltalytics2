@@ -32,6 +32,15 @@ export interface IChargingInfo extends IChargingStatus {
 	suggestion: IChargingSuggestion;
 }
 
+export interface ICalculationSuggestion {
+	status: undefined | 'no_suggestion' | 'suggestion' | 'not_necessary';
+	failedReason?: undefined | 'no_awattar_data' | 'not_enough_data';
+	suggestedPriceToSet?: number;
+	suggestedKwToSet?: number;
+	hoursCharging?: number;
+	estimatedPrice?: number;
+}
+
 export class ChargingApi {
 	userSettings: IUserSettings;
 
@@ -119,6 +128,53 @@ export class ChargingApi {
 
 		ret.suggestedKw = Math.round(ret.suggestedKw * 100) / 100;
 		return ret;
+	}
+
+	async getCalculationSuggestion(): Promise<ICalculationSuggestion> {
+		const currentKwhInBattery =
+			(this.userSettings.carBatteryKwh! / 100) * this.userSettings.carBatteryCurrentPercent!;
+		const targetKwhInBattery =
+			(this.userSettings.carBatteryKwh! / 100) * this.userSettings.carBatteryTargetPercent!;
+		const missingKwh = targetKwhInBattery - currentKwhInBattery;
+
+		if (missingKwh <= 0)
+			return {
+				status: 'not_necessary'
+			} as ICalculationSuggestion;
+
+		const now = moment().startOf('hour');
+		const targetMoment =
+			this.userSettings.carBatteryTargetHour! <= moment().hour()
+				? moment()
+						.startOf('day')
+						.add(1, 'days')
+						.add(this.userSettings.carBatteryTargetHour! - 1, 'hours')
+				: moment()
+						.startOf('day')
+						.add(this.userSettings.carBatteryTargetHour! - 1, 'hours');
+
+		const hoursBetween = targetMoment.diff(now, 'hours');
+
+		// get prices for all those hours
+		const awattarPrices = await AwattarApi.getData({ hours: hoursBetween + 2, offsetHours: 0 });
+		if (awattarPrices === null)
+			return {
+				status: 'no_suggestion',
+				failedReason: 'no_awattar_data'
+			} as ICalculationSuggestion;
+
+		const match = awattarPrices!.find((p) => p.time.startOf('hour').isSame(targetMoment, 'hour'));
+		if (!match)
+			return {
+				status: 'no_suggestion',
+				failedReason: 'not_enough_data'
+			} as ICalculationSuggestion;
+
+		// todo - here's the point where we can do a calculation
+
+		return {
+			status: 'no_suggestion'
+		} as ICalculationSuggestion;
 	}
 
 	private getExcessChargeSuggestion(status: IChargingStatus): number {
