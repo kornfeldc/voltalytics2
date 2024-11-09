@@ -6,6 +6,7 @@
 	import { invalidate, invalidateAll } from '$app/navigation';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { toast } from 'svelte-sonner';
+	import { onMount } from 'svelte';
 
 	let chargingInfo = $state({} as IChargingInfo);
 	let chaningChargingPower = $state(false);
@@ -83,6 +84,20 @@
 				' cent)';
 		else ret += ' (' + chargingInfo.userSettings.forceChargeKw + ' kw)';
 		return ret;
+	};
+
+	onMount(() => {
+		reload(true);
+	});
+
+	const reload = (first = false) => {
+		if (!first) {
+			const dialog = document.querySelector('div[role="dialog"]');
+			if (!dialog) getChargingInfo();
+		}
+		setTimeout(() => {
+			reload();
+		}, 120 * 1000);
 	};
 </script>
 

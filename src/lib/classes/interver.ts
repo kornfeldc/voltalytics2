@@ -1,6 +1,7 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
 import { SolarmanApi } from '$lib/classes/solarman';
 import moment from 'moment';
+import { SolarEdgeApi } from '$lib/classes/solaredge';
 
 /**
  * Interface representing the base data for an inverter.
@@ -88,9 +89,12 @@ export class InverterApi implements IInverterMethods {
 	}
 
 	getInverterApiObj(): IInverterMethods | undefined {
-		if (this.userSettings?.currentInverter === 'solarman') {
+		if (this.userSettings?.currentInverter === 'solarman')
 			return new SolarmanApi(this.userSettings);
-		}
+
+		if (this.userSettings?.currentInverter === 'solaredge')
+			return new SolarEdgeApi(this.userSettings);
+
 		return undefined;
 	}
 }

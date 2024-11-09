@@ -152,7 +152,7 @@
 
 <div class="w-full p-4">
 	<Tabs.Root value={initialTab}>
-		<Tabs.Content value="setup">
+		<Tabs.Content value="setup" class="focus-visible:ring-0">
 			{@render renderUserCard()}
 
 			<div class="mt-8 grid grid-cols-4 items-center gap-y-2">
@@ -229,7 +229,7 @@
 			</div>
 		</Tabs.Content>
 
-		<Tabs.Content value="settings">
+		<Tabs.Content value="settings" class="focus-visible:ring-0">
 			<div class="mt-8 grid grid-cols-4 items-center gap-y-2">
 				{#if isChargingPossible}
 					<Label class="col-span-3">Use suggestions automatically</Label>
@@ -319,7 +319,7 @@
 			</div>
 		</Tabs.Content>
 
-		<Tabs.Content value="calculator">
+		<Tabs.Content value="calculator" class="focus-visible:ring-0">
 			<div class="mb-8 mt-8 grid grid-cols-4 items-center gap-y-2">
 				<Label class="col-span-3">Vehicle Battery Capacity in kWh</Label>
 				<Input
