@@ -173,7 +173,10 @@ export class ChargingApi {
 				failedReason: 'not_enough_data'
 			} as ICalculationSuggestion;
 
-		const prices = awattarPrices.map((p) => p.grossPrice);
+		const prices = awattarPrices
+			.filter((p) => p.time.startOf('hour').isAfter(moment(), 'hour'))
+			.filter((p) => p.time.startOf('hour').isSameOrBefore(targetMoment, 'hour'))
+			.map((p) => p.grossPrice);
 		const calculationResult = this.calculateBestForceChargingValues(missingKwh, prices);
 
 		return {
@@ -190,6 +193,8 @@ export class ChargingApi {
 		const minChargingPower = this.userSettings.minChargingPower;
 		const maxChargingPower = this.userSettings.maxChargingPower;
 
+		console.log('calculateBestForceChargingValues', kwhToCharge, prices);
+
 		let suggestedPriceToSet = 0;
 		let suggestedKwToSet = 0;
 		let hoursCharging = 0;
@@ -197,27 +202,43 @@ export class ChargingApi {
 
 		// Sort prices in ascending order to find the lowest viable threshold
 		const sortedPrices = [...prices].sort((a, b) => a - b);
+		console.log('sortedPrices', sortedPrices);
 
+		// Iterate over each possible price threshold to find the optimal setting
 		for (let priceThreshold of sortedPrices) {
-			// Filter hours when the price is below or equal to the current threshold
-			const affordableHours = prices.filter((price) => price <= priceThreshold);
-			const possibleHours = affordableHours.length;
+			let totalKwhCharged = 0;
+			let totalCost = 0;
+			let hourCount = 0;
 
-			// Calculate maximum kWh that can be charged with constant charging speed
-			const chargingSpeed = Math.min(maxChargingPower, kwhToCharge / possibleHours);
-			const potentialKwhCharged = chargingSpeed * possibleHours;
+			// Charge only in hours where price is below or equal to the threshold
+			for (let price of prices) {
+				if (price <= priceThreshold) {
+					// Calculate maximum charging speed within limits
+					const chargingSpeed = Math.min(maxChargingPower, kwhToCharge - totalKwhCharged);
+					totalKwhCharged += chargingSpeed;
+					totalCost += price * chargingSpeed;
+					hourCount++;
 
-			if (potentialKwhCharged >= kwhToCharge) {
-				// We've found the minimum price threshold to achieve required kWh
+					// Stop if required kWh is reached
+					if (totalKwhCharged >= kwhToCharge) break;
+				}
+			}
+
+			// If this threshold allows us to charge the required kWh, record it as optimal
+			if (totalKwhCharged >= kwhToCharge) {
 				suggestedPriceToSet = priceThreshold;
-				suggestedKwToSet = chargingSpeed;
-				hoursCharging = possibleHours;
-
-				// Calculate total cost by summing up prices in affordable hours
-				estimatedPrice = affordableHours.reduce((sum, price) => sum + price * chargingSpeed, 0);
+				suggestedKwToSet = Math.min(maxChargingPower, kwhToCharge / hourCount);
+				hoursCharging = hourCount;
+				estimatedPrice = totalCost;
 				break;
 			}
 		}
+		// raise by 1 so that forceCharging works with < price
+		suggestedPriceToSet += 0.1;
+
+		suggestedPriceToSet = Math.round(suggestedPriceToSet * 100) / 100;
+		suggestedKwToSet = Math.round(suggestedKwToSet * 10) / 10;
+		estimatedPrice = Math.round(estimatedPrice) / 100;
 
 		return {
 			suggestedPriceToSet,

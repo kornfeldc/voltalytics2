@@ -92,6 +92,13 @@
 		formData.forceChargeUnderCent = calculationResult.suggestedPriceToSet;
 		await save();
 	};
+
+	const formatValue = (val: number) => {
+		return new Intl.NumberFormat('de-DE', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(val);
+	};
 </script>
 
 {#snippet renderCalculationResult()}
@@ -104,23 +111,23 @@
 					<h1>Result</h1>
 					<div class="grid grid-cols-4 gap-2 pt-2">
 						<div class="col-span-3">Suggested max cents per kWh:</div>
-						<div>
-							{calculationResult.suggestedPriceToSet}
+						<div class="text-right">
+							{formatValue(calculationResult.suggestedPriceToSet ?? 0)}
 						</div>
 
 						<div class="col-span-3">Suggested kw:</div>
-						<div>
-							{calculationResult.suggestedKwToSet}
+						<div class="text-right">
+							{formatValue(calculationResult.suggestedKwToSet ?? 0)}
 						</div>
 
 						<div class="col-span-3">Hours charging:</div>
-						<div>
+						<div class="text-right">
 							{calculationResult.hoursCharging}
 						</div>
 
 						<div class="col-span-3">Estimated price:</div>
-						<div>
-							{calculationResult.estimatedPrice}
+						<div class="text-right">
+							{formatValue(calculationResult.estimatedPrice ?? 0)} €
 						</div>
 
 						<Button class="col-span-4" onclick={() => useCalculationResult()}
@@ -375,7 +382,9 @@
 			>
 
 			{#if calculating}
-				<LoaderCircle class="mr-2 h-12 w-12 animate-spin" />
+				<div class="mt-4 flex w-full justify-center">
+					<LoaderCircle class="mr-2 h-12 w-12 animate-spin" />
+				</div>
 			{:else}
 				{@render renderCalculationResult()}
 			{/if}
