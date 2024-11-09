@@ -35,7 +35,7 @@
 	</div>
 	<div>
 		<Button variant="outline" href="/v/inverter/month/{navMonth}">
-			{data.day}
+			{moment(data.day).format('dd., DD.MM.YYYY')}
 		</Button>
 	</div>
 	<div>

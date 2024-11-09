@@ -3,14 +3,16 @@
 	import { BatteryIcon, CarIcon, SunIcon, UnplugIcon, ZapIcon } from 'lucide-svelte';
 	import { vConsole } from '$lib/classes/vconsole';
 	import type { IChargingInfo } from '$lib/classes/charging';
+	import { invalidate, invalidateAll } from '$app/navigation';
+	import { Toaster } from '$lib/components/ui/sonner';
+	import { toast } from 'svelte-sonner';
 
 	let chargingInfo = $state({} as IChargingInfo);
+	let chaningChargingPower = $state(false);
 
 	const getChargingInfo = async (): Promise<void> => {
 		const res = await fetch(`/api/charging`);
 		chargingInfo = await res.json();
-
-		vConsole.log('data', chargingInfo);
 
 		if ((chargingInfo?.kw ?? 0) > 0) status = chargingInfo.suggestion.currentChargingReason as any;
 		else if (chargingInfo?.carStatus === 'unknown') status = 'no_car';
@@ -50,6 +52,7 @@
 	};
 
 	const changeChargingPower = async (kw: number) => {
+		chaningChargingPower = true;
 		const response = await fetch(`/api/charging`, {
 			headers: {
 				'Content-Type': 'application/json'
@@ -58,10 +61,15 @@
 			body: JSON.stringify({ kw })
 		});
 		const result = await response.json();
+		chaningChargingPower = false;
 
 		console.log('result of set charging', result);
-
-		// show result as toast
+		if (result.status === 'success') {
+			toast.success('Charging speed changed');
+			setTimeout(() => {
+				invalidateAll();
+			}, 2000);
+		} else toast.error('Failed to set charging speed');
 	};
 
 	const getForceChargeSfx = (): string => {
@@ -77,6 +85,8 @@
 		return ret;
 	};
 </script>
+
+<Toaster />
 
 {#snippet skeleton()}
 	<div class="mb-4 flex gap-2">
@@ -155,7 +165,7 @@
 		{#if chargingInfo?.suggestion.suggestedKw === 0}
 			suggestion: don't charge
 		{:else if chargingInfo?.suggestion.suggestedKw > 0}
-			suggestion: charge with {chargingInfo?.suggestion.suggestedKw}kw
+			suggestion: charge with {chargingInfo?.suggestion.suggestedKw} kw
 		{:else}
 			&nbsp;
 		{/if}
@@ -180,40 +190,47 @@
 	{#await getChargingInfo()}
 		{@render skeleton()}
 	{:then _}
-		{@const iconClass = 'mt-2 h-8 w-8 text-slate-400'}
-		<div class="mb-4 flex flex items-center justify-center gap-2" onclick={(event) => click(event)}>
-			{#if status === 'battery'}
-				<BatteryIcon class={iconClass} />
-			{:else if status === 'excess'}
-				<SunIcon class={iconClass} />
-			{:else}
-				<ZapIcon class={iconClass} />
-			{/if}
-			<div class="flex grow flex-col items-center justify-center">
-				<div class="mb-2">
-					{@render renderTitle()}
-				</div>
-				{@render renderFlow()}
-				<div class="mt-[-1em]">
-					{@render renderSubTitle()}
-				</div>
-			</div>
-			{#if status === 'no_car'}
-				<UnplugIcon class="{iconClass} text-inactive" />
-			{:else}
-				<CarIcon class={iconClass} />
-			{/if}
-		</div>
-		<div class="flex flex-col">
-			{#each statusOrder as statusItem}
-				{#if statusItem === 'force'}
-					{@render renderForceChargingLine()}
-				{:else if statusItem === 'excess'}
-					{@render renderExcessChargingLine()}
-				{:else if statusItem === 'battery'}
-					{@render renderBatteryChargingLine()}
+		{#if chaningChargingPower}
+			{@render skeleton()}
+		{:else}
+			{@const iconClass = 'mt-2 h-8 w-8 text-slate-400'}
+			<div
+				class="mb-4 flex flex items-center justify-center gap-2"
+				onclick={(event) => click(event)}
+			>
+				{#if status === 'battery'}
+					<BatteryIcon class={iconClass} />
+				{:else if status === 'excess'}
+					<SunIcon class={iconClass} />
+				{:else}
+					<ZapIcon class={iconClass} />
 				{/if}
-			{/each}
-		</div>
+				<div class="flex grow flex-col items-center justify-center">
+					<div class="mb-2">
+						{@render renderTitle()}
+					</div>
+					{@render renderFlow()}
+					<div class="mt-[-1em]">
+						{@render renderSubTitle()}
+					</div>
+				</div>
+				{#if status === 'no_car'}
+					<UnplugIcon class="{iconClass} text-inactive" />
+				{:else}
+					<CarIcon class={iconClass} />
+				{/if}
+			</div>
+			<div class="flex flex-col">
+				{#each statusOrder as statusItem}
+					{#if statusItem === 'force'}
+						{@render renderForceChargingLine()}
+					{:else if statusItem === 'excess'}
+						{@render renderExcessChargingLine()}
+					{:else if statusItem === 'battery'}
+						{@render renderBatteryChargingLine()}
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	{/await}
 </div>

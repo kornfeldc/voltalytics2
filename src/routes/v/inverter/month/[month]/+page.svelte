@@ -43,7 +43,7 @@
 	</div>
 	<div>
 		<Button variant="outline" href="/v/inverter/year/{navYear}">
-			{data.month}
+			{moment(data.month).format('MMMM YYYY')}
 		</Button>
 	</div>
 	<div>
@@ -66,7 +66,7 @@
 	<a href="/v/inverter/day/{day}">
 		<Card.Root class="mx-2 my-4 border-slate-900 shadow-lg shadow-slate-800">
 			<Card.Header class="p-2 text-center">
-				{day}
+				{moment(day).format('dd., DD.MM.YYYY')}
 			</Card.Header>
 			<Card.Content class="p-4 pt-0">
 				<InverterStatistics referenceDate={day} range="day" />

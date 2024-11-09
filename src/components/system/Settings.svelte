@@ -118,6 +118,14 @@
 					<Input class="col-span-3" bind:value={formData.solarManAppPw} />
 				{/if}
 
+				{#if formData.currentInverter === 'solaredge'}
+					<Label>Api Key</Label>
+					<Input class="col-span-3" bind:value={formData.solarEdgeApiKey} />
+
+					<Label>Account Key</Label>
+					<Input class="col-span-3" bind:value={formData.solarEdgeAccountKey} />
+				{/if}
+
 				<div class="col-span-4 my-3"></div>
 
 				<Label>Wallbox</Label>
@@ -157,15 +165,19 @@
 		<Tabs.Content value="settings">
 			<div class="mt-8 grid grid-cols-4 items-center gap-y-2">
 				{#if isChargingPossible}
-					<Label class="col-span-3">Activate Excess Charging</Label>
-					<Switch class="" id="excess" bind:checked={formData.chargeWithExcessIsOn}></Switch>
+					<Label class="col-span-3">Use suggestions automatically</Label>
+					<Switch class="justify-self-end" bind:checked={formData.autoExecuteSuggestions}></Switch>
 
-					{#if (formData.chargeUntilMinBattery ?? 0) > 0}
-						<div class="col-span-4 my-3"></div>
+					<Label class="col-span-3">Activate Excess Charging</Label>
+					<Switch class="justify-self-end" id="excess" bind:checked={formData.chargeWithExcessIsOn}
+					></Switch>
+
+					{#if (formData.chargeUntilMinBattery ?? 0) < 100}
+						<div class="col-span-4 mt-4"></div>
 					{/if}
 					<Label class="col-span-3">Activate Charging from PV Battery</Label>
 					<Switch
-						class=""
+						class="justify-self-end"
 						id="force"
 						checked={(formData.chargeUntilMinBattery ?? 0) < 100}
 						onCheckedChange={(v) => {
@@ -185,15 +197,25 @@
 							step={5}
 						/>
 						<Input type="number" bind:value={formData.chargeUntilMinBattery} readonly />
+						<div class="col-span-4 mb-4"></div>
 					{/if}
 
-					{#if formData.forceChargeIsOn || (formData.chargeUntilMinBattery ?? 0) < 100}
-						<div class="col-span-4 my-3"></div>
+					<!--{#if formData.forceChargeIsOn || (formData.chargeUntilMinBattery ?? 0) < 100}-->
+					<!--	<div class="col-span-4 my-3"></div>-->
+					<!--{/if}-->
+
+					{#if formData.forceChargeIsOn && (formData.chargeUntilMinBattery ?? 0) === 100}
+						<div class="col-span-4 mt-4"></div>
 					{/if}
 					<Label class="col-span-3">Activate Force Charging</Label>
-					<Switch class="" id="force" bind:checked={formData.forceChargeIsOn}></Switch>
+					<Switch class="justify-self-end" id="force" bind:checked={formData.forceChargeIsOn}
+					></Switch>
 
 					{#if formData.forceChargeIsOn}
+						<Label class="col-span-3">Turn off force charging in the morning</Label>
+						<Switch class="justify-self-end" bind:checked={formData.autoTurnOffForceCharging}
+						></Switch>
+
 						{#if formData.useAwattar}
 							<Label class="col-span-4 mt-3">Force charge when Awattar price is below cent</Label>
 							<Slider

@@ -62,7 +62,7 @@
 	<a href="/v/inverter/month/{month}">
 		<Card.Root class="mx-2 my-4 border-slate-900 shadow-lg shadow-slate-800">
 			<Card.Header class="p-2 text-center">
-				{moment(month).format('YYYY-MM')}
+				{moment(month).format('MMMM YYYY')}
 			</Card.Header>
 			<Card.Content class="p-4 pt-0">
 				<InverterStatistics referenceDate={month} range="month" />

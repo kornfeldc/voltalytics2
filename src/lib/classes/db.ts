@@ -1,7 +1,10 @@
 ﻿import pkg from '@supabase/supabase-js';
+import moment from 'moment';
 const { createClient, SupabaseClient } = pkg;
 
 export interface IUserSettings {
+	email: string;
+
 	currentInverter: '' | 'solarman' | 'solaredge';
 	currentWallbox: '' | 'goe';
 
@@ -13,6 +16,7 @@ export interface IUserSettings {
 	solarManAppPw: string;
 
 	solarEdgeApiKey: string;
+	solarEdgeAccountKey: string;
 
 	goESerial: string;
 	goEApiToken: string;
@@ -25,6 +29,10 @@ export interface IUserSettings {
 	forceChargeIsOn?: boolean;
 	forceChargeUnderCent?: number;
 	forceChargeKw?: number;
+
+	autoExecuteSuggestions: boolean;
+	autoTurnOffForceCharging: boolean;
+	lastForceChargeReset?: Date;
 
 	minChargingPower: number;
 	maxChargingPower: number;
@@ -104,6 +112,7 @@ export class Db {
 			solarManAppPw: dbUser.solarManAppPw,
 
 			solarEdgeApiKey: dbUser.solarEdgeApiKey,
+			solarEdgeAccountKey: dbUser.solarEdgeAccountKey,
 
 			goESerial: dbUser.goESerial,
 			goEApiToken: dbUser.goEApiToken,
@@ -117,8 +126,26 @@ export class Db {
 			forceChargeUnderCent: dbUser.forceChargeUnderCent,
 			forceChargeKw: dbUser.forceChargeKw,
 
+			autoExecuteSuggestions: dbUser.autoExecuteSuggestions,
+			autoTurnOffForceCharging: dbUser.autoTurnOffForceCharging,
+
+			lastForceChargeReset: dbUser.lastForceChargeReset
+				? moment(dbUser.lastForceChargeReset).toDate()
+				: undefined,
+
 			...FixedUserSettings
 		} as IUserSettings;
+	}
+
+	static async resetForceCharge(email: string) {
+		const supabase = this.getClient();
+		const { error } = await supabase
+			.from('user')
+			.update({
+				forceChargeIsOn: false,
+				lastForceChargeReset: moment().toDate()
+			})
+			.eq('email', email);
 	}
 
 	static async saveUserSettings(email: string, settings: IUserSettings) {
@@ -135,12 +162,15 @@ export class Db {
 				solarManIsOn: settings.currentInverter === 'solarman',
 				solarEdgeIsOn: settings.currentInverter === 'solaredge',
 				solarEdgeApiKey: settings.solarEdgeApiKey,
+				solarEdgeAccountKey: settings.solarEdgeAccountKey,
 				useAwattar: settings.useAwattar,
 				chargeWithExcessIsOn: settings.chargeWithExcessIsOn,
 				chargeUntilMinBattery: settings.chargeUntilMinBattery,
 				forceChargeIsOn: settings.forceChargeIsOn,
 				forceChargeUnderCent: settings.forceChargeUnderCent,
 				forceChargeKw: settings.forceChargeKw,
+				autoExecuteSuggestions: settings.autoExecuteSuggestions,
+				autoTurnOffForceCharging: settings.autoTurnOffForceCharging,
 				goEIsOn: settings.currentWallbox === 'goe',
 				goESerial: settings.goESerial,
 				goEApiToken: settings.goEApiToken

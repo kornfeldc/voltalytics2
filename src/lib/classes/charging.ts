@@ -117,6 +117,7 @@ export class ChargingApi {
 			ret.suggestedKw = -1;
 		}
 
+		ret.suggestedKw = Math.round(ret.suggestedKw * 100) / 100;
 		return ret;
 	}
 
