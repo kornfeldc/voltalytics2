@@ -60,11 +60,11 @@
 		<Drawer.Root bind:open={drawerState.isOpened}>
 			<div class="flex min-h-screen flex-col">
 				<TopBar></TopBar>
-				<main class="mx-auto w-full max-w-[1000px]">
+				<main class="mx-auto w-full max-w-[800px]">
 					{@render children?.()}
 				</main>
 			</div>
-			<Drawer.Content>
+			<Drawer.Content class="mx-auto max-w-[800px]">
 				<div class="safe_margin_bottom_reduced">
 					<Settings {userSettings} {saved}></Settings>
 				</div>
