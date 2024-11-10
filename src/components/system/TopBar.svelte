@@ -10,7 +10,9 @@
 	let userName = $derived($page.data?.session?.user?.name);
 </script>
 
-<header class="sticky top-0 z-10 bg-background/50 p-1 shadow-lg shadow-primary/50 backdrop-blur">
+<header
+	class="sticky top-0 z-10 bg-background/50 p-1 shadow-lg backdrop-blur dark:shadow-primary/50"
+>
 	<div class="flex items-center px-4">
 		<Zap href="/v/dashboard" class="h-12 w-12 text-amber-400"></Zap>
 		<a href="/v/dashboard" class="ml-1 text-xl">voltalytics</a>

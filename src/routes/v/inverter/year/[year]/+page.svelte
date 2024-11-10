@@ -50,7 +50,7 @@
 	<div class="grow"></div>
 </div>
 
-<Card.Root class="mx-2 my-4 border-slate-900 shadow-lg shadow-slate-800">
+<Card.Root class="mx-2 my-4 shadow-lg dark:border-slate-900 dark:shadow-slate-800">
 	<Card.Content class="p-4">
 		<InverterStatistics {referenceDate} range="year" />
 	</Card.Content>
@@ -60,7 +60,7 @@
 
 {#each monthsInYear as month}
 	<a href="/v/inverter/month/{month}">
-		<Card.Root class="mx-2 my-4 border-slate-900 shadow-lg shadow-slate-800">
+		<Card.Root class="mx-2 my-4 shadow-lg dark:border-slate-900 dark:shadow-slate-800">
 			<Card.Header class="p-2 text-center">
 				{moment(month).format('MMMM YYYY')}
 			</Card.Header>

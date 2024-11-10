@@ -46,7 +46,7 @@
 	<div class="grow"></div>
 </div>
 
-<Card.Root class="mx-2 my-4 border-slate-900 shadow-lg shadow-slate-800">
+<Card.Root class="mx-2 my-4 shadow-lg dark:border-slate-900 dark:shadow-slate-800">
 	<Card.Content class="p-4">
 		<InverterStatistics referenceDate={data.day} />
 	</Card.Content>

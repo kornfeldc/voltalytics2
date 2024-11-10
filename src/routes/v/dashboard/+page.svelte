@@ -12,7 +12,7 @@
 	import type { AwattarEntry } from '$lib/classes/awattar';
 	let { data } = $props();
 
-	const cardClass = 'shadow-lg shadow-slate-800 border-slate-900';
+	const cardClass = 'shadow-lg dark:shadow-slate-800 dark:border-slate-900';
 	const openSettings = () => {
 		drawerState.isOpened = true;
 	};
