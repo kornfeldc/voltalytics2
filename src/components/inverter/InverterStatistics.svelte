@@ -3,7 +3,7 @@
 	import moment from 'moment/moment';
 	import InverterLiveGraphSkeleton from './InverterLiveGraphSkeleton.svelte';
 	import InverterStatisticsSkeleton from './InverterStatisticsSkeleton.svelte';
-	import { CircleSlashedIcon } from 'lucide-svelte';
+	import NoData from '../system/NoData.svelte';
 
 	interface IProps {
 		referenceDate: string;
@@ -56,12 +56,7 @@
 		<InverterStatisticsSkeleton />
 	{:then _}
 		{#if isEmpty}
-			<div
-				class="text-inactive flex h-full w-full flex-col items-center justify-center text-center"
-			>
-				<CircleSlashedIcon />
-				no data
-			</div>
+			<NoData></NoData>
 		{:else}
 			<div class="grid grid-cols-2 gap-1">
 				{#each gridConfig as lineConfig}
@@ -83,5 +78,7 @@
 				{/each}
 			</div>
 		{/if}
+	{:catch _}
+		<NoData></NoData>
 	{/await}
 </div>

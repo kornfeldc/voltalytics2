@@ -7,6 +7,7 @@
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
+	import NoData from '../system/NoData.svelte';
 
 	let chargingInfo = $state({} as IChargingInfo);
 	let chaningChargingPower = $state(false);
@@ -207,12 +208,11 @@
 	{:then _}
 		{#if chaningChargingPower}
 			{@render skeleton()}
+		{:else if !chargingInfo.suggestion.allDataAvailable}
+			<NoData></NoData>
 		{:else}
 			{@const iconClass = 'mt-2 h-8 w-8 text-slate-400'}
-			<div
-				class="mb-4 flex flex items-center justify-center gap-2"
-				onclick={(event) => click(event)}
-			>
+			<div class="mb-4 flex items-center justify-center gap-2" onclick={(event) => click(event)}>
 				{#if status === 'battery'}
 					<BatteryIcon class={iconClass} />
 				{:else if status === 'excess'}

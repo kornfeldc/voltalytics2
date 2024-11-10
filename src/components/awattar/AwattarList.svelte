@@ -3,6 +3,7 @@
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { awattarState } from '$lib/state/awattarState.svelte';
+	import NoData from '../system/NoData.svelte';
 
 	const getEntries = async (): Promise<AwattarEntry[]> => {
 		const res = await fetch(`/api/awattar?hours=5`);
@@ -56,4 +57,6 @@
 			<div class="text-right {getEntryClass(entry)}">{getFormattedPrice(entry)}</div>
 		{/each}
 	</div>
+{:catch _}
+	<NoData></NoData>
 {/await}

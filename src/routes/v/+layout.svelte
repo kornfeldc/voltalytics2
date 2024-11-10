@@ -60,7 +60,7 @@
 		<Drawer.Root bind:open={drawerState.isOpened}>
 			<div class="flex min-h-screen flex-col">
 				<TopBar></TopBar>
-				<main>
+				<main class="mx-auto w-full max-w-[1000px]">
 					{@render children?.()}
 				</main>
 			</div>

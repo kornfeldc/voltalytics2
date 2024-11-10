@@ -17,6 +17,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { vConsole } from '$lib/classes/vconsole';
+	import NoData from '../system/NoData.svelte';
 
 	let realTimeInfo = $state({} as IInverterRealTimeData);
 	let lastUpdateTime = $derived.by(() => {
@@ -250,5 +251,7 @@
 				{@render usageCorner()}
 			</div>
 		</div>
+	{:catch _}
+		<NoData></NoData>
 	{/await}
 </div>

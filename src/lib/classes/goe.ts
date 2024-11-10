@@ -4,6 +4,7 @@ import type {
 	IWallBoxMethods,
 	IWallBoxRealTimeData
 } from '$lib/classes/wallBox';
+import { Time } from '@internationalized/date';
 
 export class GoeApi implements IWallBoxMethods {
 	userSettings: IUserSettings;
@@ -100,7 +101,13 @@ export class GoeApi implements IWallBoxMethods {
 		};
 	}
 	async getRealTimeData(): Promise<IWallBoxRealTimeData | undefined> {
-		const endpoint = this.getEndpoint() + '/api/status';
+		let endpoint = this.getEndpoint() + '/api/status';
+
+		// https://github.com/goecharger/go-eCharger-API-v2/blob/main/apikeys-de.md
+		const keysToGet = ['nrg', 'amp', 'psm', 'alw', 'car', 'utc', 'loc'];
+		const filterParams = 'filter=' + keysToGet.join(',');
+		endpoint += `?${filterParams}`;
+
 		const response = await fetch(endpoint, { ...this.getHeader() });
 		const result = await response.json();
 		return this.mapResult(result);
@@ -115,7 +122,7 @@ export class GoeApi implements IWallBoxMethods {
 			carStatus:
 				result?.car === 3 || result?.car === 4
 					? 'waiting'
-					: result?.c === 2
+					: result?.car === 2
 						? 'charging'
 						: 'unknown'
 		} as IWallBoxRealTimeData;

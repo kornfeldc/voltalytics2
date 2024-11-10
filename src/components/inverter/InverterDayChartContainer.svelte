@@ -3,6 +3,7 @@
 	import moment from 'moment/moment';
 	import InverterDayChart from './InverterDayChart.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import NoData from '../system/NoData.svelte';
 
 	let { day = moment().format('YYYY-MM-DD') }: { day?: string } = $props();
 	let data: IInverterRealTimeData[] = $state([]);
@@ -25,4 +26,6 @@
 			<InverterDayChart {data} showLegend={false} showWholeDay={false} />
 		</div>
 	{/if}
+{:catch _}
+	<NoData></NoData>
 {/await}

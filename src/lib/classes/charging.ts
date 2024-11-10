@@ -23,6 +23,7 @@ export interface IChargingStatus {
 
 export interface IChargingSuggestion {
 	allDataAvailable: boolean;
+	errorMessage?: string;
 	currentChargingReason: '' | 'force' | 'excess' | 'battery';
 	suggestedKw: number;
 }
@@ -52,24 +53,36 @@ export class ChargingApi {
 	}
 
 	async getChargingInfo(): Promise<IChargingInfo> {
-		const wallBoxApi = new WallBoxApi(this.userSettings!);
-		const wallBoxRealTimeData = await wallBoxApi.getRealTimeData();
+		let inverterRealTimeData = undefined;
+		try {
+			const inverterApi = new InverterApi(this.userSettings!);
+			inverterRealTimeData = await inverterApi.getRealTimeData();
+			if (!inverterRealTimeData) return this.getEmptyChargingInfo('Inverter data empty');
+		} catch (e) {
+			return this.getEmptyChargingInfo((('Inverter call failed: ' + e) as any)?.message);
+		}
 
-		const inverterApi = new InverterApi(this.userSettings!);
-		const inverterRealTimeData = await inverterApi.getRealTimeData();
+		let wallBoxRealTimeData = undefined;
+		try {
+			const wallBoxApi = new WallBoxApi(this.userSettings!);
+			wallBoxRealTimeData = await wallBoxApi.getRealTimeData();
+			if (!wallBoxRealTimeData) return this.getEmptyChargingInfo('Wallbox data empty');
+		} catch (e) {
+			return this.getEmptyChargingInfo((('Wallbox call failed: ' + e) as any)?.message);
+		}
 
 		const currentPrice = this.userSettings.useAwattar
 			? ((await AwattarApi.getCurrentPrice()) ?? null)
 			: null;
 
 		let chargingStatus = {
-			gotInverterData: inverterRealTimeData !== null,
+			gotInverterData: true,
 			powerProduction: inverterRealTimeData?.powerProduction ?? 0,
 			powerUsage: inverterRealTimeData?.powerUsage ?? 0,
 			inverterTimestamp: inverterRealTimeData?.timestamp ?? new Date(),
 			batterySoc: inverterRealTimeData?.batterySoc ?? 0,
 
-			gotWallBoxData: wallBoxRealTimeData !== null,
+			gotWallBoxData: true,
 			kw: wallBoxRealTimeData?.kw ?? 0,
 			ampere: wallBoxRealTimeData?.ampere ?? 0,
 			phase: wallBoxRealTimeData?.phase ?? 0,
@@ -94,8 +107,22 @@ export class ChargingApi {
 		};
 	}
 
+	getEmptyChargingInfo(errorMessage = ''): IChargingInfo {
+		return {
+			userSettings: this.userSettings,
+			suggestion: {
+				allDataAvailable: false,
+				errorMessage,
+				currentChargingReason: '',
+				suggestedKw: -1
+			}
+		} as IChargingInfo;
+	}
+
 	calculateChargingSuggestion(status: IChargingStatus): IChargingSuggestion {
-		let ret = {} as IChargingSuggestion;
+		let ret = {
+			allDataAvailable: true
+		} as IChargingSuggestion;
 
 		const currentlyCharging = (status.kw ?? 0) > 0;
 		const usageWithoutCar = (status.powerUsage ?? 0) - (status.kw ?? 0);

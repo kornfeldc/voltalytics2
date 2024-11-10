@@ -61,39 +61,104 @@
 	</Card.Content>
 {/snippet}
 
-<section class="grid grid-cols-2 gap-3">
+<section class="dashboard_grid">
 	{#await data.userSettings then userSettings}
 		{#if userSettings?.currentInverter}
-			<Card.Root class="col-span-2 {cardClass}">
-				{@render card(
-					`${userSettings?.currentInverter} live data`,
-					'',
-					dashboardLive,
-					userSettings?.useAwattar
-				)}
-			</Card.Root>
-
-			<Card.Root class="col-span-2 {cardClass}" onclick={() => openSettings()}>
-				{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
-			</Card.Root>
-
-			<a href={'/v/inverter/day/' + moment().format('YYYY-MM-DD')}>
+			<div class="dashboard_live">
 				<Card.Root class={cardClass}>
-					{@render card('today', '', dashboardToday)}
+					{@render card(
+						`${userSettings?.currentInverter} live data`,
+						'',
+						dashboardLive,
+						userSettings?.useAwattar
+					)}
 				</Card.Root>
-			</a>
+			</div>
 
-			<a href={'/v/inverter/month/' + moment().format('YYYY-MM')}>
-				<Card.Root class={cardClass}>
-					{@render card('month', '', dashboardMonth)}
+			<div class="dashboard_charging">
+				<Card.Root class={cardClass} onclick={() => openSettings()}>
+					{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
 				</Card.Root>
-			</a>
+			</div>
+
+			<div class="dashboard_today">
+				<a href={'/v/inverter/day/' + moment().format('YYYY-MM-DD')}>
+					<Card.Root class={cardClass}>
+						{@render card('today', '', dashboardToday)}
+					</Card.Root>
+				</a>
+			</div>
+
+			<div class="dashboard_month">
+				<a href={'/v/inverter/month/' + moment().format('YYYY-MM')}>
+					<Card.Root class={cardClass}>
+						{@render card('month', '', dashboardMonth)}
+					</Card.Root>
+				</a>
+			</div>
 		{/if}
 
 		{#if userSettings?.useAwattar}
-			<Card.Root class="col-span-2 {cardClass}">
-				{@render card('awattar prices', 'cent/kWh', dashboardPrices)}
-			</Card.Root>
+			<div class="dashboard_awattar">
+				<Card.Root class={cardClass}>
+					{@render card('awattar prices', 'cent/kWh', dashboardPrices)}
+				</Card.Root>
+			</div>
 		{/if}
 	{/await}
 </section>
+
+<style>
+	.dashboard_live {
+		grid-area: live;
+	}
+	.dashboard_charging {
+		grid-area: charging;
+	}
+	.dashboard_today {
+		grid-area: today;
+	}
+	.dashboard_month {
+		grid-area: month;
+	}
+	.dashboard_awattar {
+		grid-area: awattar;
+	}
+
+	.dashboard_grid {
+		display: grid;
+		grid-gap: 1em;
+	}
+
+	@media (max-width: 600px) {
+		.dashboard_grid {
+			grid-template-columns: auto auto;
+			grid-template-areas:
+				'live live'
+				'charging charging'
+				'today month'
+				'awattar awattar';
+		}
+	}
+
+	@media (min-width: 601px) and (max-width: 1000px) {
+		.dashboard_grid {
+			grid-template-columns: auto auto;
+			grid-template-areas:
+				'live today'
+				'live month'
+				'charging charging'
+				'awattar awattar';
+		}
+	}
+
+	@media (min-width: 1001px) {
+		.dashboard_grid {
+			grid-template-columns: auto auto;
+			grid-template-areas:
+				'live today'
+				'live month'
+				'charging awattar';
+		}
+	}
+</style>

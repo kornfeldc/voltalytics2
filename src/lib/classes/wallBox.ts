@@ -1,5 +1,6 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
 import { GoeApi } from '$lib/classes/goe';
+import { Time } from '@internationalized/date';
 /**
  * Interface representing the base data for an inverter.
  *
