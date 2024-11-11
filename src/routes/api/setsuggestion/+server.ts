@@ -41,7 +41,9 @@ function shouldResetForceCharge(userSettings: any) {
 	if (!userSettings.autoTurnOffForceCharging) return false;
 
 	const morning = moment().startOf('day').add(6, 'hour');
+	const morningUntil = moment().startOf('day').add(6.25, 'hour');
 	if (moment().isBefore(morning)) return false;
+	if (moment().isAfter(morningUntil)) return false;
 
 	if (!userSettings.lastForceChargeReset) return true;
 	return !moment(userSettings.lastForceChargeReset).isSame(moment(), 'day');
