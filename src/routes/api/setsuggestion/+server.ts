@@ -39,10 +39,10 @@ export async function GET({ url }) {
 function shouldResetForceCharge(userSettings: any) {
 	if (!userSettings.forceChargeIsOn) return false;
 	if (!userSettings.autoTurnOffForceCharging) return false;
-	if (!userSettings.lastForceChargeReset) return true;
 
 	const morning = moment().startOf('day').add(6, 'hour');
 	if (moment().isBefore(morning)) return false;
 
+	if (!userSettings.lastForceChargeReset) return true;
 	return !moment(userSettings.lastForceChargeReset).isSame(moment(), 'day');
 }
