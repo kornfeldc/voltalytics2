@@ -6,7 +6,6 @@ import { WallBoxApi } from '$lib/classes/wallBox';
 import { ChargingApi } from '$lib/classes/charging';
 
 export async function GET({ locals, url }) {
-	vConsole.log('api call - charging', url.href);
 	const session = await locals.auth();
 	if (!session?.user?.email) redirect(307, '/');
 
@@ -22,7 +21,6 @@ export async function GET({ locals, url }) {
 export async function POST({ request, locals }): Promise<Response> {
 	const { kw } = await request.json();
 
-	vConsole.log('api call - set charging', kw);
 	const session = await locals.auth();
 	if (!session?.user?.email) redirect(307, '/');
 

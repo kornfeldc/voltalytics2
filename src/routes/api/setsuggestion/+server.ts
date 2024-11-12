@@ -3,6 +3,7 @@ import { Db } from '$lib/classes/db';
 import { ChargingApi } from '$lib/classes/charging';
 import { WallBoxApi } from '$lib/classes/wallBox';
 import moment from 'moment';
+import { vConsole } from '$lib/classes/vconsole';
 
 export async function GET({ url }) {
 	const userHash = url.searchParams.get('hash');
@@ -16,6 +17,7 @@ export async function GET({ url }) {
 	if (shouldResetForceCharge(userSettings)) {
 		await Db.resetForceCharge(userSettings.email);
 		userSettings = await Db.getUserSettingsByHash(userHash);
+		vConsole.info('turned off force charging', userSettings);
 	}
 
 	const chargingApi = new ChargingApi(userSettings!);
@@ -29,28 +31,32 @@ export async function GET({ url }) {
 
 	const wallBoxApi = new WallBoxApi(userSettings!);
 	const result = await wallBoxApi.setChargingSpeed(chargingInfo.suggestion.suggestedKw);
-
-	return json({
+	const ret = {
 		chargingInfo,
 		wallBoxResult: result
-	});
+	};
+
+	vConsole.info('charging speed changed', ret);
+	return json(ret);
 }
 
 function shouldResetForceCharge(userSettings: any) {
-	console.info('shouldResetForceCharge');
-	if (!userSettings.forceChargeIsOn) return false;
-	if (!userSettings.autoTurnOffForceCharging) return false;
 	const morning = moment().startOf('day').add(6, 'hour');
 	const morningUntil = moment().startOf('day').add(6.5, 'hour');
-	if (moment().isBefore(morning)) return false;
-	if (moment().isAfter(morningUntil)) return false;
-
 	const lastResetWasToday = moment(userSettings.lastForceChargeReset).isSame(moment(), 'day');
-	console.info('shouldResetForceCharge2', {
+	vConsole.info('shouldResetForceCharge', {
+		userSettings: userSettings.forceChargeIsOn,
+		autoTurnOffForceCharging: userSettings.autoTurnOffForceCharging,
 		lastForceChargeReset: userSettings.lastForceChargeReset,
+		morning,
+		morningUntil,
 		lastResetWasToday
 	});
 
+	if (!userSettings.forceChargeIsOn) return false;
+	if (!userSettings.autoTurnOffForceCharging) return false;
+	if (moment().isBefore(morning)) return false;
+	if (moment().isAfter(morningUntil)) return false;
 	if (!userSettings.lastForceChargeReset) return true;
 	return !lastResetWasToday;
 }
