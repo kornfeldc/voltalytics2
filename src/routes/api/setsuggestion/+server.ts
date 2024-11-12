@@ -17,17 +17,19 @@ export async function GET({ url }) {
 	if (shouldResetForceCharge(userSettings)) {
 		await Db.resetForceCharge(userSettings.email);
 		userSettings = await Db.getUserSettingsByHash(userHash);
-		vConsole.info('turned off force charging', userSettings);
+		vConsole.info('setsuggestion - turned off force charging', userSettings);
 	}
 
 	const chargingApi = new ChargingApi(userSettings!);
 	const chargingInfo = await chargingApi.getChargingInfo();
 
-	if (chargingInfo.suggestion.suggestedKw === -1)
+	if (chargingInfo.suggestion.suggestedKw === -1) {
+		vConsole.info('setsuggestion - no change');
 		return json({
 			chargingInfo,
 			result: 'dont_change'
 		});
+	}
 
 	const wallBoxApi = new WallBoxApi(userSettings!);
 	const result = await wallBoxApi.setChargingSpeed(chargingInfo.suggestion.suggestedKw);
@@ -36,7 +38,7 @@ export async function GET({ url }) {
 		wallBoxResult: result
 	};
 
-	vConsole.info('charging speed changed', ret);
+	vConsole.info('setsuggestion - charging speed changed', ret);
 	return json(ret);
 }
 
@@ -44,7 +46,7 @@ function shouldResetForceCharge(userSettings: any) {
 	const morning = moment().startOf('day').add(6, 'hour');
 	const morningUntil = moment().startOf('day').add(6.5, 'hour');
 	const lastResetWasToday = moment(userSettings.lastForceChargeReset).isSame(moment(), 'day');
-	vConsole.info('shouldResetForceCharge', {
+	vConsole.info('setsuggestion - shouldResetForceCharge', {
 		userSettings: userSettings.forceChargeIsOn,
 		autoTurnOffForceCharging: userSettings.autoTurnOffForceCharging,
 		lastForceChargeReset: userSettings.lastForceChargeReset,
