@@ -260,16 +260,17 @@
 					></Switch>
 					{#if (formData.chargeUntilMinBattery ?? 0) < 100}
 						<Label class="col-span-3">Always charge when battery is above (%)</Label>
-						<Slider
-							class="col-span-3 pr-4"
-							value={[formData.chargeUntilMinBattery ?? 0]}
-							onValueChange={(v) => {
-								formData.chargeUntilMinBattery = v[0];
-							}}
-							min={10}
-							max={90}
-							step={5}
-						/>
+						<div class="col-span-3 pr-3">
+							<Slider
+								value={[formData.chargeUntilMinBattery ?? 0]}
+								onValueChange={(v) => {
+									formData.chargeUntilMinBattery = v[0];
+								}}
+								min={10}
+								max={90}
+								step={5}
+							/>
+						</div>
 						<Input type="number" bind:value={formData.chargeUntilMinBattery} readonly />
 						<div class="col-span-4 mb-4"></div>
 					{/if}
@@ -292,30 +293,32 @@
 
 						{#if formData.useAwattar}
 							<Label class="col-span-4 mt-3">Force charge when Awattar price is below cent</Label>
-							<Slider
-								class="col-span-3 pr-4"
-								value={[formData.forceChargeUnderCent ?? 0]}
-								onValueChange={(v) => {
-									formData.forceChargeUnderCent = v[0];
-								}}
-								min={-10}
-								max={25}
-								step={0.1}
-							/>
+							<div class="col-span-3 pr-3">
+								<Slider
+									value={[formData.forceChargeUnderCent ?? 0]}
+									onValueChange={(v) => {
+										formData.forceChargeUnderCent = v[0];
+									}}
+									min={-10}
+									max={25}
+									step={0.1}
+								/>
+							</div>
 							<Input type="number" bind:value={formData.forceChargeUnderCent} readonly />
 						{/if}
 
 						<Label class="col-span-4 mt-3">Force charge kw</Label>
-						<Slider
-							class="col-span-3 pr-4 "
-							value={[formData.forceChargeKw ?? 1]}
-							onValueChange={(v) => {
-								formData.forceChargeKw = v[0];
-							}}
-							min={1}
-							max={10}
-							step={0.5}
-						/>
+						<div class="col-span-3 pr-3">
+							<Slider
+								value={[formData.forceChargeKw ?? 1]}
+								onValueChange={(v) => {
+									formData.forceChargeKw = v[0];
+								}}
+								min={1}
+								max={10}
+								step={0.5}
+							/>
+						</div>
 						<Input type="number" bind:value={formData.forceChargeKw} readonly />
 					{/if}
 
@@ -338,42 +341,45 @@
 				></Input>
 
 				<Label class="col-span-4 mt-3">Current State of Charge in %</Label>
-				<Slider
-					class="col-span-3 pr-4 "
-					value={[formData.carBatteryCurrentPercent ?? 50]}
-					onValueChange={(v) => {
-						formData.carBatteryCurrentPercent = v[0];
-					}}
-					min={1}
-					max={100}
-					step={1}
-				/>
+				<div class="col-span-3 pr-3">
+					<Slider
+						value={[formData.carBatteryCurrentPercent ?? 50]}
+						onValueChange={(v) => {
+							formData.carBatteryCurrentPercent = v[0];
+						}}
+						min={1}
+						max={100}
+						step={1}
+					/>
+				</div>
 				<Input type="number" readonly bind:value={formData.carBatteryCurrentPercent} />
 
 				<Label class="col-span-4 mt-3">Target State of Charge in %</Label>
-				<Slider
-					class="col-span-3 pr-4 "
-					value={[formData.carBatteryTargetPercent ?? 80]}
-					onValueChange={(v) => {
-						formData.carBatteryTargetPercent = v[0];
-					}}
-					min={1}
-					max={100}
-					step={1}
-				/>
+				<div class="col-span-3 pr-3">
+					<Slider
+						value={[formData.carBatteryTargetPercent ?? 80]}
+						onValueChange={(v) => {
+							formData.carBatteryTargetPercent = v[0];
+						}}
+						min={1}
+						max={100}
+						step={1}
+					/>
+				</div>
 				<Input type="number" readonly bind:value={formData.carBatteryTargetPercent} />
 
 				<Label class="col-span-4 mt-3">Target Hour</Label>
-				<Slider
-					class="col-span-3 pr-4 "
-					value={[formData.carBatteryTargetHour ?? 6]}
-					onValueChange={(v) => {
-						formData.carBatteryTargetHour = v[0];
-					}}
-					min={0}
-					max={23}
-					step={1}
-				/>
+				<div class="col-span-3 pr-3">
+					<Slider
+						value={[formData.carBatteryTargetHour ?? 6]}
+						onValueChange={(v) => {
+							formData.carBatteryTargetHour = v[0];
+						}}
+						min={0}
+						max={23}
+						step={1}
+					/>
+				</div>
 				<Input type="number" readonly bind:value={formData.carBatteryTargetHour} />
 			</div>
 
