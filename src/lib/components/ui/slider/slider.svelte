@@ -11,50 +11,12 @@
 	export { className as class };
 
 	let showOverlay = writable(false);
-	let startTouchX = writable(0);
-	let startTouchY = writable(0);
-
-	let startPointerX = writable(0);
-	let startPointerY = writable(0);
-
-	onMount(() => {});
-
-	const handleTouchEnd = (event: Event) => {
-		showOverlay.set(false);
-	};
 
 	const handlePointerEnd = (event: Event) => {
 		showOverlay.set(false);
 	};
 
-	const handleTouchMove = (event: TouchEvent) => {
-		const touch = event.touches[0];
-		const deltaY = Math.abs(touch.clientY - $startTouchY);
-		if (deltaY > 2) {
-			event.preventDefault(); // Block Y-axis movements
-			event.stopPropagation();
-		}
-	};
-
-	const handlePointerMove = (event: PointerEvent) => {
-		const deltaY = Math.abs(event.clientY - $startPointerY);
-		if (deltaY > 2) {
-			event.preventDefault(); // Block Y-axis movements
-			event.stopPropagation();
-		}
-	};
-
-	const handleTouchStart = (event: TouchEvent) => {
-		const touch = event.touches[0];
-		startTouchX.set(touch.clientX);
-		startTouchY.set(touch.clientY);
-		showOverlay.set(true);
-		event.preventDefault(); // Ensure it stops propagation here
-	};
-
 	const handlePointerStart = (event: PointerEvent) => {
-		startPointerX.set(event.clientX);
-		startPointerY.set(event.clientY);
 		showOverlay.set(true);
 		event.preventDefault(); // Ensure it stops propagation here
 	};
@@ -75,11 +37,7 @@
 	class={cn('relative flex w-full touch-none select-none items-center', className)}
 	{...$$restProps}
 	let:thumbs
-	ontouchstart={(e) => handleTouchStart(e)}
-	ontouchmove={(e) => handleTouchMove(e)}
-	ontouchend={(e) => handleTouchEnd(e)}
 	onpointerdown={(e) => handlePointerStart(e)}
-	onpointermove={(e) => handlePointerMove(e)}
 	onpointerup={(e) => handlePointerEnd(e)}
 >
 	<span class="relative h-2 w-full grow overflow-hidden rounded-full bg-primary/20">
