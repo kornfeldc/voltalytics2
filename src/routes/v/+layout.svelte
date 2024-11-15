@@ -57,7 +57,7 @@
 	<FullPageLoading></FullPageLoading>
 {:then _}
 	{#if userSettings}
-		<Drawer.Root bind:open={drawerState.isOpened} onDrag={(e) => onDrawerDrag(e)}>
+		<Drawer.Root bind:open={drawerState.isOpened}>
 			<div class="flex min-h-screen flex-col">
 				<TopBar></TopBar>
 				<main class="mx-auto w-full max-w-[800px]">
