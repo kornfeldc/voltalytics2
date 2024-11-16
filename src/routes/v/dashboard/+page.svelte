@@ -75,11 +75,13 @@
 				</Card.Root>
 			</div>
 
-			<div class="dashboard_charging">
-				<Card.Root class={cardClass} onclick={() => openSettings()}>
-					{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
-				</Card.Root>
-			</div>
+			{#if userSettings?.currentWallbox}
+				<div class="dashboard_charging">
+					<Card.Root class={cardClass} onclick={() => openSettings()}>
+						{@render card(`${userSettings?.currentWallbox} live data`, '', dashboardCharging)}
+					</Card.Root>
+				</div>
+			{/if}
 
 			<div class="dashboard_today">
 				<a href={'/v/inverter/day/' + moment().format('YYYY-MM-DD')}>

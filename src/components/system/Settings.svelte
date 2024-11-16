@@ -26,7 +26,9 @@
 	let calculationResult = $state({} as ICalculationSuggestion);
 
 	let initialTab = $derived.by(() => {
-		return formData.solarManAppEmail || formData.solarEdgeApiKey ? 'settings' : 'setup';
+		return isChargingPossible && (formData.solarManAppEmail || formData.solarEdgeApiKey)
+			? 'settings'
+			: 'setup';
 	});
 
 	const inverterOptions = [

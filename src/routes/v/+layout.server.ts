@@ -8,6 +8,7 @@ export const load = async (event) => {
 	if (!session?.user?.email) redirect(307, '/');
 
 	const userSettings = Db.getUserSettings(session.user.email);
+	console.log('layout usersettings', userSettings);
 	return {
 		session,
 		userSettings

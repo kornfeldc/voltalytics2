@@ -68,17 +68,30 @@ export class Db {
 		return createClient(this.supabaseUrl, this.supabaseKey);
 	}
 
+	static parseEmail(email: string): string {
+		return email;
+	}
+
 	static async getUserSettings(email: string): Promise<IUserSettings | undefined> {
 		if (!email) return;
 
+		console.log('getUserSettins', email);
+		console.log('getUserSettins p ', this.parseEmail(email));
+
 		const supabase = this.getClient();
-		const { data, error } = await supabase.from('user').select('*').eq('email', email).single();
-		if (error) console.error(error);
+		const { data, error } = await supabase
+			.from('user')
+			.select('*')
+			.eq('email', this.parseEmail(email))
+			.single();
+		if (error) {
+			console.error(error);
+		}
 
 		if (!data) {
 			// insert user entry
-			await supabase.from('user').insert({ email });
-			return this.getUserSettings(email);
+			const res = await supabase.from('user').insert({ email: this.parseEmail(email) });
+			return this.getUserSettings(this.parseEmail(email));
 		}
 
 		return this.mapFromDb(data);
@@ -104,7 +117,7 @@ export class Db {
 
 	static mapFromDb(dbUser: any): IUserSettings {
 		return {
-			email: dbUser.email,
+			email: this.parseEmail(dbUser.email),
 			hash: dbUser.hash,
 			theme: dbUser.theme,
 			currentInverter: dbUser.solarManIsOn ? 'solarman' : dbUser.solarEdgeIsOn ? 'solaredge' : '',
@@ -154,7 +167,7 @@ export class Db {
 				forceChargeIsOn: false,
 				lastForceChargeReset: moment().toDate()
 			})
-			.eq('email', email);
+			.eq('email', this.parseEmail(email));
 	}
 
 	static async saveUserSettings(email: string, settings: IUserSettings) {
@@ -188,7 +201,7 @@ export class Db {
 				carBatteryTargetPercent: settings.carBatteryTargetPercent,
 				carBatteryTargetHour: settings.carBatteryTargetHour
 			})
-			.eq('email', email);
+			.eq('email', this.parseEmail(email));
 	}
 
 	static async saveUserSolarManToken(email: string, token: string) {
@@ -198,6 +211,6 @@ export class Db {
 			.update({
 				solarManLastAccessToken: token
 			})
-			.eq('email', email);
+			.eq('email', this.parseEmail(email));
 	}
 }
