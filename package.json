@@ -1,6 +1,6 @@
 {
 	"name": "voltalytics2",
-	"version": "2.2.7",
+	"version": "2.2.8",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",

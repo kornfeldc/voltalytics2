@@ -10,6 +10,7 @@
 	import { awattarState } from '$lib/state/awattarState.svelte';
 	import moment from 'moment';
 	import type { AwattarEntry } from '$lib/classes/awattar';
+	import { Button } from '$lib/components/ui/button';
 	let { data } = $props();
 
 	const cardClass = 'shadow-lg dark:shadow-slate-800 dark:border-slate-900';
@@ -63,6 +64,18 @@
 
 <section class="dashboard_grid">
 	{#await data.userSettings then userSettings}
+		{#if !userSettings?.currentInverter && !userSettings?.currentWallbox && !userSettings?.useAwattar}
+			<div class="dashboard_live">
+				<Card.Root class={cardClass} onclick={() => openSettings()}>
+					<Card.Header class="flex flex-col p-2 px-4">
+						<h1 class="whitespace-nowrap">start setup</h1>
+					</Card.Header>
+					<Card.Content class="flex justify-center px-4 py-0 pb-2">
+						<Button>Click here to open setup</Button>
+					</Card.Content>
+				</Card.Root>
+			</div>
+		{/if}
 		{#if userSettings?.currentInverter}
 			<div class="dashboard_live">
 				<Card.Root class={cardClass}>

@@ -90,7 +90,9 @@ export class Db {
 
 		if (!data) {
 			// insert user entry
-			const res = await supabase.from('user').insert({ email: this.parseEmail(email) });
+			const res = await supabase.from('user').insert({
+				email: this.parseEmail(email)
+			});
 			return this.getUserSettings(this.parseEmail(email));
 		}
 
