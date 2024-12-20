@@ -132,9 +132,11 @@
 							{formatValue(calculationResult.estimatedPrice ?? 0)} €
 						</div>
 
-						<Button class="col-span-4" onclick={() => useCalculationResult()}
-							>Use as force charging parameters</Button
-						>
+						<Drawer.Close class="col-span-4">
+							<Button onclick={() => useCalculationResult()}
+								>Use as force charging parameters</Button
+							>
+						</Drawer.Close>
 					</div>
 				{/if}
 			</Card.Content>
