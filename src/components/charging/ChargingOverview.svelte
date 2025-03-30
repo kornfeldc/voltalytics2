@@ -46,10 +46,13 @@
 	});
 
 	const click = async (event: MouseEvent) => {
-		if (chargingInfo?.suggestion?.suggestedKw < 0) return;
-
 		event.stopPropagation();
 		event.preventDefault();
+		await useSuggestion();
+	};
+
+	const useSuggestion = async () => {
+		if (chargingInfo?.suggestion?.suggestedKw < 0) return;
 		await changeChargingPower(chargingInfo.suggestion.suggestedKw);
 	};
 
@@ -87,8 +90,18 @@
 		return ret;
 	};
 
+	const settingsChanged = async () => {
+		console.log('settings got changed');
+		document.removeEventListener('settingsChanged', settingsChanged);
+		await getChargingInfo();
+		await useSuggestion();
+	};
+
 	onMount(() => {
 		reload(true);
+
+		document.removeEventListener('settingsChanged', settingsChanged);
+		document.addEventListener('settingsChanged', settingsChanged);
 	});
 
 	const reload = (first = false) => {

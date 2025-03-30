@@ -21,6 +21,7 @@
 	};
 
 	const saved = () => {
+		document.dispatchEvent(new Event('settingsChanged'));
 		invalidateAll();
 	};
 

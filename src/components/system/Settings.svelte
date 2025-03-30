@@ -80,12 +80,15 @@
 		await res.json();
 	};
 
-	const calculate = async () => {
+	const calculate = async (executeIfPossible: boolean) => {
 		calculating = true;
 		await saveWithoutUi();
 		const response = await fetch('/api/calculation');
 		calculationResult = await response.json();
 		calculating = false;
+
+		if (executeIfPossible && calculationResult.status === 'suggestion')
+			await useCalculationResult();
 	};
 
 	const useCalculationResult = async () => {
@@ -387,9 +390,19 @@
 				<Input type="number" readonly bind:value={formData.carBatteryTargetHour} />
 			</div>
 
-			<Button variant="outline" class="w-full border-primary" onclick={() => calculate()}
-				>CALCULATE</Button
-			>
+			<div class="flex">
+				<Button
+					variant="outline"
+					class="mr-0.5 w-full border-primary"
+					onclick={() => calculate(false)}>CALCULATE</Button
+				>
+
+				<Button
+					variant="outline"
+					class="ml-0.5 w-full border-primary"
+					onclick={() => calculate(true)}>CALCULATE & SET</Button
+				>
+			</div>
 
 			{#if calculating}
 				<div class="mt-4 flex w-full justify-center">
