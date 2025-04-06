@@ -37,6 +37,7 @@ export interface IUserSettings {
 	carBatteryCurrentPercent?: number;
 	carBatteryTargetPercent?: number;
 	carBatteryTargetHour?: number;
+	pauseCharging: boolean;
 
 	minChargingPower: number;
 	maxChargingPower: number;
@@ -152,6 +153,7 @@ export class Db {
 			carBatteryCurrentPercent: dbUser.carBatteryCurrentPercent ?? 50,
 			carBatteryTargetPercent: dbUser.carBatteryTargetPercent ?? 50,
 			carBatteryTargetHour: dbUser.carBatteryTargetHour ?? 6,
+			pauseCharging: dbUser.pauseCharging,
 
 			lastForceChargeReset: dbUser.lastForceChargeReset
 				? moment(dbUser.lastForceChargeReset).toDate()
@@ -201,7 +203,18 @@ export class Db {
 				carBatteryKwh: settings.carBatteryKwh,
 				carBatteryCurrentPercent: settings.carBatteryCurrentPercent,
 				carBatteryTargetPercent: settings.carBatteryTargetPercent,
-				carBatteryTargetHour: settings.carBatteryTargetHour
+				carBatteryTargetHour: settings.carBatteryTargetHour,
+				pauseCharging: settings.pauseCharging
+			})
+			.eq('email', this.parseEmail(email));
+	}
+
+	static async setPauseCharging(email: string, pauseCharging: boolean) {
+		const supabase = this.getClient();
+		const { error } = await supabase
+			.from('user')
+			.update({
+				pauseCharging: pauseCharging
 			})
 			.eq('email', this.parseEmail(email));
 	}

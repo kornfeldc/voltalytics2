@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { BatteryIcon, CarIcon, SunIcon, UnplugIcon, ZapIcon } from 'lucide-svelte';
+	import { BatteryIcon, CarIcon, PauseIcon, SunIcon, UnplugIcon, ZapIcon } from 'lucide-svelte';
 	import { vConsole } from '$lib/classes/vconsole';
 	import type { IChargingInfo } from '$lib/classes/charging';
 	import { invalidate, invalidateAll } from '$app/navigation';
@@ -11,9 +11,15 @@
 
 	let chargingInfo = $state({} as IChargingInfo);
 	let chaningChargingPower = $state(false);
+	let chargingIsPaused = $derived(chargingInfo.userSettings.pauseCharging);
+	let loading = $state(false);
 
 	const getChargingInfo = async (): Promise<void> => {
-		const res = await fetch(`/api/charging`);
+		await loadChargingInfo();
+	};
+
+	const loadChargingInfo = async (): Promise<void> => {
+		const res = await fetch(`/api/charging?antic=` + new Date().getTime());
 		chargingInfo = await res.json();
 
 		if ((chargingInfo?.kw ?? 0) > 0) status = chargingInfo.suggestion.currentChargingReason as any;
@@ -48,33 +54,56 @@
 	const click = async (event: MouseEvent) => {
 		event.stopPropagation();
 		event.preventDefault();
-		await useSuggestion();
-	};
-
-	const useSuggestion = async () => {
 		if (chargingInfo?.suggestion?.suggestedKw < 0) return;
 		await changeChargingPower(chargingInfo.suggestion.suggestedKw);
 	};
 
-	const changeChargingPower = async (kw: number) => {
+	const togglePause = async (event: MouseEvent) => {
+		event.stopPropagation();
+		event.preventDefault();
+
+		console.log('set');
+		loading = true;
+		const res = await fetch('/api/set_pause_charging?pauseCharging=' + !chargingIsPaused, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' }
+		});
+		await res.json();
+
+		loading = true;
+		await changeChargingPowerToSuggestion();
+		loading = false;
+	};
+
+	const changeChargingPower = async (kw: number, setSuggested = false) => {
 		chaningChargingPower = true;
-		const response = await fetch(`/api/charging`, {
+
+		const endpoint = setSuggested ? '/api/charging_to_suggestion' : '/api/charging';
+		const body = setSuggested ? {} : { kw };
+
+		const response = await fetch(endpoint, {
 			headers: {
 				'Content-Type': 'application/json'
 			},
 			method: 'POST',
-			body: JSON.stringify({ kw })
+			body: JSON.stringify(body)
 		});
 		const result = await response.json();
-		chaningChargingPower = false;
 
-		console.log('result of set charging', result);
-		if (result.status === 'success') {
-			toast.success('Charging speed changed');
-			setTimeout(() => {
-				invalidateAll();
-			}, 2000);
-		} else toast.error('Failed to set charging speed');
+		setTimeout(async () => {
+			await loadChargingInfo();
+
+			chaningChargingPower = false;
+
+			console.log('result of set charging', result);
+			if (result.status === 'success') {
+				toast.success('Charging speed changed');
+			} else toast.error('Failed to set charging speed');
+		}, 5000);
+	};
+
+	const changeChargingPowerToSuggestion = async () => {
+		await changeChargingPower(0, true);
 	};
 
 	const getForceChargeSfx = (): string => {
@@ -93,8 +122,9 @@
 	const settingsChanged = async () => {
 		console.log('settings got changed');
 		document.removeEventListener('settingsChanged', settingsChanged);
-		await getChargingInfo();
-		await useSuggestion();
+		loading = true;
+		await changeChargingPowerToSuggestion();
+		loading = false;
 	};
 
 	onMount(() => {
@@ -140,7 +170,7 @@
 {/snippet}
 
 {#snippet renderExcessChargingLine()}
-	{#if status === 'excess'}
+	{#if status === 'excess' && !chargingIsPaused}
 		{@render renderStatusLine(true, 'excess charging')}
 	{:else if isExcessChargingEnabled}
 		{@render renderStatusLine(false, 'excess charging enabled', '', true)}
@@ -150,7 +180,7 @@
 {/snippet}
 
 {#snippet renderForceChargingLine()}
-	{#if status === 'force'}
+	{#if status === 'force' && !chargingIsPaused}
 		{@render renderStatusLine(true, 'force charging')}
 	{:else if isForceChargingEnabled}
 		{@render renderStatusLine(false, 'force charging enabled', getForceChargeSfx(), true)}
@@ -160,7 +190,7 @@
 {/snippet}
 
 {#snippet renderBatteryChargingLine()}
-	{#if status === 'battery'}
+	{#if status === 'battery' && !chargingIsPaused}
 		{@render renderStatusLine(true, 'charging from battery')}
 	{:else if isBatteryChargingEnabled}
 		{@render renderStatusLine(
@@ -191,7 +221,9 @@
 
 {#snippet renderSubTitle()}
 	<span class="text-inactive text-xs">
-		{#if chargingInfo?.suggestion.suggestedKw === 0}
+		{#if chargingIsPaused}
+			charging is paused
+		{:else if chargingInfo?.suggestion.suggestedKw === 0}
 			suggestion: don't charge
 		{:else if chargingInfo?.suggestion.suggestedKw > 0}
 			suggestion: charge with {chargingInfo?.suggestion.suggestedKw} kw
@@ -219,7 +251,9 @@
 	{#await getChargingInfo()}
 		{@render skeleton()}
 	{:then _}
-		{#if chaningChargingPower}
+		{#if loading}
+			{@render skeleton()}
+		{:else if chaningChargingPower}
 			{@render skeleton()}
 		{:else if !chargingInfo.suggestion.allDataAvailable}
 			<NoData></NoData>
@@ -242,10 +276,12 @@
 						{@render renderSubTitle()}
 					</div>
 				</div>
-				{#if status === 'no_car'}
-					<UnplugIcon class="{iconClass} text-inactive" />
+				{#if chargingIsPaused}
+					<PauseIcon class="{iconClass} text-inactive" onclick={(event) => togglePause(event)} />
+				{:else if status === 'no_car'}
+					<UnplugIcon class="{iconClass} text-inactive" onclick={(event) => togglePause(event)} />
 				{:else}
-					<CarIcon class={iconClass} />
+					<CarIcon class={iconClass} onclick={(event) => togglePause(event)} />
 				{/if}
 			</div>
 			<div class="flex flex-col">

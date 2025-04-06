@@ -15,6 +15,8 @@ export class GoeApi implements IWallBoxMethods {
 	}
 
 	setChargingSpeed(kw: number): Promise<IWallBoxChargingResponse> {
+		console.log('goe check pc', this.userSettings.pauseCharging);
+		if (this.userSettings.pauseCharging) return this.setRawChargingSpeed(0, 0);
 		const phaseAndAmp = this.getPhaseAndAmpFromKw(kw);
 		return this.setRawChargingSpeed(phaseAndAmp.ampere, phaseAndAmp.phase);
 	}

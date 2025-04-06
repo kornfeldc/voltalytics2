@@ -24,7 +24,7 @@ export interface IChargingStatus {
 export interface IChargingSuggestion {
 	allDataAvailable: boolean;
 	errorMessage?: string;
-	currentChargingReason: '' | 'force' | 'excess' | 'battery';
+	currentChargingReason: '' | 'force' | 'excess' | 'battery' | 'paused';
 	suggestedKw: number;
 }
 
@@ -123,6 +123,12 @@ export class ChargingApi {
 		let ret = {
 			allDataAvailable: true
 		} as IChargingSuggestion;
+
+		if (this.userSettings.pauseCharging) {
+			ret.suggestedKw = 0;
+			ret.currentChargingReason = 'paused';
+			return ret;
+		}
 
 		const currentlyCharging = (status.kw ?? 0) > 0;
 		const usageWithoutCar = (status.powerUsage ?? 0) - (status.kw ?? 0);
