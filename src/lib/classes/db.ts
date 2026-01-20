@@ -1,6 +1,5 @@
-﻿import pkg from '@supabase/supabase-js';
-import moment from 'moment';
-const { createClient, SupabaseClient } = pkg;
+﻿import moment from 'moment';
+import { createClient } from '@supabase/supabase-js';
 
 export interface IUserSettings {
 	email: string;
