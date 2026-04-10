@@ -3,5 +3,5 @@
 </script>
 
 <a href="/v/awattar">
-	<AwattarList />
+	<AwattarList hours={5} />
 </a>

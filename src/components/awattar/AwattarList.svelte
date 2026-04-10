@@ -4,9 +4,13 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { awattarState } from '$lib/state/awattarState.svelte';
 	import NoData from '../system/NoData.svelte';
+	
+	let {
+		hours = 12
+	} = $props();
 
 	const getEntries = async (): Promise<AwattarEntry[]> => {
-		const res = await fetch(`/api/awattar?hours=5`);
+		const res = await fetch(`/api/awattar?hours=${hours}`);
 		const result = await res.json();
 
 		const now = moment().startOf('hour');

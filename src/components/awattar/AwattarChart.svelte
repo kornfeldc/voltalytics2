@@ -3,6 +3,10 @@
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
+	let {
+		hours = 24 
+	} = $props();
+	
 	let entries = $state([] as AwattarEntry[]);
 
 	const prices = $derived.by(() => {
@@ -23,7 +27,8 @@
 	});
 
 	const getEntries = async (): Promise<void> => {
-		const res = await fetch(`/api/awattar?hours=12&offsetHours=0`);
+		console.log(`/api/awattar?hours=${hours}&offsetHours=`)
+		const res = await fetch(`/api/awattar?hours=${hours}&offsetHours=0`);
 		entries = await res.json();
 	};
 

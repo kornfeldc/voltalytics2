@@ -11,13 +11,13 @@ export class AwattarApi {
 	static apiEndpoint = import.meta.env.VITE_AWATTAR_API as string;
 	static async getData({ hours = 5, offsetHours = 1 } = {}): Promise<Array<AwattarEntry> | null> {
 		try {
-			const startMoment = moment().startOf('hour').add(-12, 'hours');
+			const startMoment = moment().startOf('hour').add(offsetHours * -1, 'hours');
 			const start = startMoment.unix() * 1000;
 
 			let data: Array<AwattarEntry> = await VoltCache.get(
-				`aWATTarData_${start}`,
+				`aWATTarData_${start}_${hours}`,
 				'',
-				60 * 60 /*1 hour*/,
+				60*60 /*1 hour*/,
 				async (): Promise<any> => {
 					try {
 						let url = `${this.apiEndpoint}/marketdata?start=${start}`;
