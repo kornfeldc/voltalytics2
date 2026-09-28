@@ -9,10 +9,15 @@ export async function GET({ locals, url }) {
 	const session = await locals.auth();
 	if (!session?.user?.email) redirect(307, '/');
 
-	const userSettings = await Db.getUserSettings(session.user.email);
+	let userSettings = await Db.getUserSettings(session.user.email);
 	if (!userSettings) redirect(307, '/');
 
-	const chargingApi = new ChargingApi(userSettings!);
+	// clear an expired manual boost so the UI stops showing it
+	await Db.expireManualCharge(userSettings.email);
+	userSettings = await Db.getUserSettings(session.user.email);
+	if (!userSettings) redirect(307, '/');
+
+	const chargingApi = new ChargingApi(userSettings);
 	const chargingInfo = await chargingApi.getChargingInfo();
 
 	return json(chargingInfo);

@@ -38,6 +38,10 @@ export interface IUserSettings {
 	carBatteryTargetHour?: number;
 	pauseCharging: boolean;
 
+	manualChargeIsOn?: boolean;
+	manualChargeKw?: number;
+	manualChargeUntil?: Date;
+
 	minChargingPower: number;
 	maxChargingPower: number;
 	minMinutesOldForAction: number;
@@ -154,6 +158,12 @@ export class Db {
 			carBatteryTargetHour: dbUser.carBatteryTargetHour ?? 6,
 			pauseCharging: dbUser.pauseCharging,
 
+			manualChargeIsOn: dbUser.manualChargeIsOn ?? false,
+			manualChargeKw: dbUser.manualChargeKw ?? undefined,
+			manualChargeUntil: dbUser.manualChargeUntil
+				? moment(dbUser.manualChargeUntil).toDate()
+				: undefined,
+
 			lastForceChargeReset: dbUser.lastForceChargeReset
 				? moment(dbUser.lastForceChargeReset).toDate()
 				: undefined,
@@ -216,6 +226,39 @@ export class Db {
 				pauseCharging: pauseCharging
 			})
 			.eq('email', this.parseEmail(email));
+	}
+
+	/**
+	 * Manual boost charging - overrules all other charging logic while on.
+	 * Only mutated here and by the manual_charging endpoint, deliberately NOT
+	 * in saveUserSettings so a stale settings save cannot clear an active boost.
+	 */
+	static async setManualCharging(email: string, on: boolean, kw?: number, until?: Date) {
+		const supabase = this.getClient();
+		const { error } = await supabase
+			.from('user')
+			.update({
+				manualChargeIsOn: on,
+				manualChargeKw: on ? (kw ?? null) : null,
+				manualChargeUntil: on && until ? until.toISOString() : null
+			})
+			.eq('email', this.parseEmail(email));
+		if (error) console.error(error);
+	}
+
+	static async expireManualCharge(email: string) {
+		const supabase = this.getClient();
+		const { error } = await supabase
+			.from('user')
+			.update({
+				manualChargeIsOn: false,
+				manualChargeKw: null,
+				manualChargeUntil: null
+			})
+			.eq('email', this.parseEmail(email))
+			.eq('manualChargeIsOn', true)
+			.lt('manualChargeUntil', moment().toDate().toISOString());
+		if (error) console.error(error);
 	}
 
 	static async saveUserSolarManToken(email: string, token: string) {

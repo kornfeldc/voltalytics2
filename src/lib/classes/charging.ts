@@ -24,7 +24,7 @@ export interface IChargingStatus {
 export interface IChargingSuggestion {
 	allDataAvailable: boolean;
 	errorMessage?: string;
-	currentChargingReason: '' | 'force' | 'excess' | 'battery' | 'paused';
+	currentChargingReason: '' | 'boost' | 'force' | 'excess' | 'battery' | 'paused';
 	suggestedKw: number;
 }
 
@@ -43,6 +43,12 @@ export interface ICalculationResult {
 export interface ICalculationSuggestion extends ICalculationResult {
 	status: undefined | 'no_suggestion' | 'suggestion' | 'not_necessary';
 	failedReason?: undefined | 'no_awattar_data' | 'not_enough_data';
+}
+
+/** Manual boost is active if switched on and its optional duration hasn't run out. */
+export function isManualChargeActive(userSettings: IUserSettings): boolean {
+	if (!userSettings.manualChargeIsOn) return false;
+	return !userSettings.manualChargeUntil || moment(userSettings.manualChargeUntil).isAfter();
 }
 
 export class ChargingApi {
@@ -123,6 +129,12 @@ export class ChargingApi {
 		let ret = {
 			allDataAvailable: true
 		} as IChargingSuggestion;
+
+		if (isManualChargeActive(this.userSettings)) {
+			ret.currentChargingReason = 'boost';
+			ret.suggestedKw = this.getManualChargeKw();
+			return ret;
+		}
 
 		if (this.userSettings.pauseCharging) {
 			ret.suggestedKw = 0;
@@ -313,11 +325,20 @@ export class ChargingApi {
 		return 0;
 	}
 
+	private getManualChargeKw(): number {
+		const kw = this.userSettings.manualChargeKw ?? this.userSettings.maxChargingPower;
+		return Math.min(
+			Math.max(kw, this.userSettings.minChargingPower),
+			this.userSettings.maxChargingPower
+		);
+	}
+
 	private getCurrentChargingReason(
 		currentlyCharging: boolean,
 		status: IChargingStatus,
 		exceedingKw: number
 	) {
+		if (isManualChargeActive(this.userSettings)) return 'boost';
 		if (
 			currentlyCharging &&
 			(status.batterySoc ?? 0) > (this.userSettings.chargeUntilMinBattery ?? 0)

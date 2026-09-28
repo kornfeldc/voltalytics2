@@ -14,6 +14,11 @@ export async function GET({ url }) {
 	if (!userSettings.autoExecuteSuggestions)
 		return json({ result: 'auto_execute_suggestions_disabled' });
 
+	// clear an expired manual boost so it doesn't linger in the DB / UI
+	await Db.expireManualCharge(userSettings.email);
+	userSettings = await Db.getUserSettingsByHash(userHash!);
+	if (!userSettings) redirect(307, '/');
+
 	if (shouldResetForceCharge(userSettings)) {
 		await Db.resetForceCharge(userSettings.email);
 		userSettings = await Db.getUserSettingsByHash(userHash);

@@ -111,6 +111,7 @@ const userSettings = await Db.getUserSettings(session.user.email);
 | `api/setsuggestion` | GET `?hash=` | **Session-less** automation hook: looks up user by `hash` query param instead of Auth.js session (for cron/shortcuts). Honors `autoExecuteSuggestions`; resets force charge when stale (`minMinutesOldForAction` semantics via `shouldResetForceCharge`). |
 | `api/save_settings` | POST | Body = full `IUserSettings` JSON → `Db.saveUserSettings`. |
 | `api/set_pause_charging` | POST `?pauseCharging=true\|false` | Toggles `pauseCharging`. |
+| `api/manual_charging` | POST `{on, kw?, durationMinutes?}` | Manual boost: persists override state, applies kW to wallbox immediately; `on:false` stops and re-applies engine suggestion. Overrules pause/price/excess/battery. |
 | `api/awattar` | GET `?hours=&offsetHours=` | Raw aWATTar entries. |
 | `api/inverter/{realtime,statistics,timeframe}` | GET | Inverter data for charts/views. |
 
@@ -138,6 +139,7 @@ const userSettings = await Db.getUserSettings(session.user.email);
 - aWATTar `hours=0` means "from valid start onward, no end bound" (`showEntry`).
 - kW→phase/amp conversion (`GoeApi.getPhaseAndAmpFromKw`): 3-phase mapped to `psm=2` payload quirk; 1-phase capped by `maxKwFor1Phase` (3 kW).
 - `FixedUserSettings` override DB values on every `mapFromDb` — changing charging constants means editing `db.ts`, not the DB.
+- Manual boost (`manualChargeIsOn/manualChargeKw/manualChargeUntil`) is the highest-priority branch in `calculateChargingSuggestion` (above `pauseCharging`). Its columns are deliberately **excluded** from `Db.saveUserSettings` — mutate only via `Db.setManualCharging` / `POST /api/manual_charging`, or a stale Settings-drawer save would clear an active boost. Expired boosts are cleaned by `Db.expireManualCharge` (called from `GET /api/charging` and `setsuggestion`), while the engine independently ignores expired boosts via `isManualChargeActive`.
 - `moment` objects inside `AwattarEntry.time` get serialized through `VoltCache` JSON — timestamps come back as strings; code re-wraps with `moment(...)`.
 - Vite `__APP_VERSION__` global is injected from `package.json` (see `vite.config.ts`); bump the version intentionally.
 - `components.json`/prettier config came from a Windows setup (`src\\app.css` path) — irrelevant on macOS, ignore.
