@@ -306,9 +306,9 @@
 									onValueChange={(v) => {
 										formData.forceChargeUnderCent = v[0];
 									}}
-									min={-10}
-									max={25}
-									step={0.1}
+								min={-10}
+								max={40}
+								step={0.1}
 								/>
 							</div>
 							<Input type="number" bind:value={formData.forceChargeUnderCent} readonly />
