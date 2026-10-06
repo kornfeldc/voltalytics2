@@ -145,6 +145,30 @@ const userSettings = await Db.getUserSettings(session.user.email);
 - `components.json`/prettier config came from a Windows setup (`src\\app.css` path) — irrelevant on macOS, ignore.
 - No lint-staged/husky; nothing blocks commits — discipline is on you.
 
+## Dual-platform policy (READ THIS FIRST for feature work)
+
+Sibling iOS repo: `../voltalyticsIos` (SwiftUI port, iOS 26+). Its `AGENTS.md`
+mirrors this file; `FEATURES.md` (repo root, shared) is the **feature ledger for
+both platforms**.
+
+1. **Every feature request is dual-platform by default.** The user states a
+   feature once — in either repo or in chat — and it must end up working in BOTH
+   apps.
+2. **Spec first**: create/update the entry in `FEATURES.md` (template inside)
+   BEFORE implementing. The entry's *contract* section (DB columns, API shapes,
+   engine semantics) is written once and implemented identically on both sides.
+3. **Implement here, then port** (or parallel): iOS mirrors domain logic 1:1 in
+   `Voltalytics/Domain/` and adds native UI in `Voltalytics/Views/` — see its
+   AGENTS.md for the porting rules and known deliberate deviations.
+4. **Settings rule of three**: `IUserSettings` (db.ts) ↔ Supabase `user` columns
+   ↔ `Settings.svelte` — and on iOS `UserSettings.swift` ↔ `SupabaseDb.swift` ↔
+   `SettingsSheet.swift`. A new setting lands in all three places on BOTH
+   platforms.
+5. **Parity check before done**: build + smoke test on both platforms (report
+   what you exercised on each), update the ledger status, document deviations.
+6. Single-platform scope only when the user says so → mark the ledger entry
+   `web-only`/`ios-only` with the reason.
+
 ## Workflow for agents
 
 1. **Scope first**: read the route + the domain class involved; endpoints share the auth prologue — copy the nearest sibling when adding one.
