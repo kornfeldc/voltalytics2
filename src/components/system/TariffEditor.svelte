@@ -26,9 +26,13 @@
 		prices: EditRule[];
 	}
 
-	const flagsOf = (list: number[], max: number): boolean[] => {
-		const flags = new Array<boolean>(max + 1).fill(false);
-		for (const i of list) flags[i] = true;
+	const flagsOf = (list: number[], count: number): boolean[] => {
+		// 0-based flag arrays with EXACTLY `count` slots (12 months, 24 hours) —
+		// the old max+1 sizing produced a trailing empty month chip.
+		const flags = new Array<boolean>(count).fill(false);
+		for (const i of list) {
+			if (i >= 0 && i < count) flags[i] = true;
+		}
 		return flags;
 	};
 
@@ -38,7 +42,7 @@
 			validFrom: range.validFrom,
 			prices: range.prices.map(
 				(rule: IFixedPriceRule): EditRule => ({
-					months: flagsOf(rule.months, 12),
+					months: flagsOf(rule.months.map((m) => m - 1), 12),
 					hours: flagsOf(rule.hours, 23),
 					price: rule.price
 				})
@@ -63,7 +67,7 @@
 			ranges: ranges.map((range) => ({
 				validFrom: range.validFrom,
 				prices: range.prices.map((rule) => ({
-					months: indices(rule.months),
+					months: indices(rule.months).map((i) => i + 1),
 					hours: indices(rule.hours),
 					price: rule.price ?? 0
 				}))
@@ -114,17 +118,17 @@
 				validFrom: moment().format('YYYY-MM-DD'),
 				prices: [
 					{
-						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12], 12),
+						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1), 12),
 						hours: flagsOf([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], 23),
 						price: 30
 					},
 					{
-						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12], 12),
+						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1), 12),
 						hours: flagsOf([0, 1, 2, 3, 4, 5, 23], 23),
 						price: 25
 					},
 					{
-						months: flagsOf([6, 7, 8], 12),
+						months: flagsOf([6, 7, 8].map((m) => m - 1), 12),
 						hours: flagsOf(Array.from({ length: 24 }, (_, i) => i), 23),
 						price: 28
 					}

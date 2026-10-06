@@ -46,7 +46,13 @@ function parseRange(rawRange: unknown): IFixedPriceRange | undefined {
 	for (const rawPrice of candidate.prices) {
 		if (!rawPrice || typeof rawPrice !== 'object') return undefined;
 		const rule = rawPrice as Record<string, unknown>;
-		const months = parseList(rule.months, 1, 12);
+		// Compat: months 0 in the data can only come from the buggy v1 editor
+		// (0-based chip indexes) — heal by shifting the whole list to 1-based.
+		const parsedMonths = parseList(rule.months, 0, 12);
+		if (!parsedMonths) return undefined;
+		const months = parsedMonths.includes(0)
+			? [...new Set(parsedMonths.map((m) => m + 1))].sort((a, b) => a - b)
+			: parsedMonths;
 		const hours = parseList(rule.hours, 0, 23);
 		if (!months || !hours || typeof rule.price !== 'number' || !isFinite(rule.price))
 			return undefined;
