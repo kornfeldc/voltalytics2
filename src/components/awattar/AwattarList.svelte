@@ -1,17 +1,19 @@
 ﻿<script lang="ts">
 	import type { AwattarEntry } from '$lib/classes/awattar';
+	import type { IUserSettings } from '$lib/classes/db';
+	import { PriceApi } from '$lib/classes/priceApi';
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { awattarState } from '$lib/state/awattarState.svelte';
 	import NoData from '../system/NoData.svelte';
-	
-	let {
-		hours = 12
-	} = $props();
 
-	const getEntries = async (): Promise<AwattarEntry[]> => {
-		const res = await fetch(`/api/awattar?hours=${hours}`);
-		const result = await res.json();
+	let {
+		hours = 12,
+		userSettings
+	}: { hours?: number; userSettings?: IUserSettings } = $props();
+
+	const getEntries = async (settings?: IUserSettings): Promise<AwattarEntry[]> => {
+		const result = (await PriceApi.getData({ hours }, settings)) ?? [];
 
 		const now = moment().startOf('hour');
 		result.forEach((entry: AwattarEntry) => {
@@ -48,7 +50,7 @@
 	};
 </script>
 
-{#await getEntries()}
+{#await getEntries(userSettings)}
 	{#each [0, 1, 2, 3, 4, 5, 6] as i}
 		<Skeleton class="mb-2 h-[1em] w-full" />
 	{/each}

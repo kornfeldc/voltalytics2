@@ -22,6 +22,11 @@ export interface IUserSettings {
 
 	useAwattar: boolean;
 
+	/** Exclusive price source: 'none' | 'awattar' (default) | 'fixed'. */
+	priceProvider: 'none' | 'awattar' | 'fixed';
+	/** Fixed-price tariff JSON, stored verbatim. */
+	fixedPriceData: string | null;
+
 	chargeWithExcessIsOn: boolean;
 	chargeUntilMinBattery?: number;
 
@@ -50,6 +55,43 @@ export interface IUserSettings {
 	forceChargeUnderCentFallback: number;
 	currentPriceFallback: number;
 	kwDifferenceChange: number;
+}
+
+/** Subset of the Supabase `user` row consumed by mapFromDb. */
+interface IDbUserRow {
+	email?: string;
+	hash?: string;
+	theme?: string;
+	solarManIsOn?: boolean;
+	solarEdgeIsOn?: boolean;
+	solarManAppId?: string;
+	solarManAppSecret?: string;
+	solarManAppEmail?: string;
+	solarManAppPw?: string;
+	solarEdgeApiKey?: string;
+	solarEdgeAccountKey?: string;
+	goEIsOn?: boolean;
+	goESerial?: string;
+	goEApiToken?: string;
+	useAwattar?: boolean;
+	priceProvider?: string;
+	fixedPriceData?: string | null;
+	chargeWithExcessIsOn?: boolean;
+	chargeUntilMinBattery?: number;
+	forceChargeIsOn?: boolean;
+	forceChargeUnderCent?: number;
+	forceChargeKw?: number;
+	autoExecuteSuggestions?: boolean;
+	autoTurnOffForceCharging?: boolean;
+	carBatteryKwh?: number;
+	carBatteryCurrentPercent?: number;
+	carBatteryTargetPercent?: number;
+	carBatteryTargetHour?: number;
+	pauseCharging?: boolean;
+	manualChargeIsOn?: boolean;
+	manualChargeKw?: number;
+	manualChargeUntil?: string | Date;
+	lastForceChargeReset?: string | Date;
 }
 
 const FixedUserSettings = {
@@ -121,9 +163,17 @@ export class Db {
 		return this.mapFromDb(data);
 	}
 
-	static mapFromDb(dbUser: any): IUserSettings {
+	static mapFromDb(dbUser: IDbUserRow): IUserSettings {
+		// Legacy derivation (identical to iOS): the old useAwattar master switch
+		// wins over the priceProvider column default. Off -> 'none'; on -> the
+		// column with 'none'/missing treated as 'awattar'.
+		const priceProvider: IUserSettings['priceProvider'] = dbUser.useAwattar
+			? dbUser.priceProvider === 'fixed'
+				? 'fixed'
+				: 'awattar'
+			: 'none';
 		return {
-			email: this.parseEmail(dbUser.email),
+			email: this.parseEmail(dbUser.email ?? ''),
 			hash: dbUser.hash,
 			theme: dbUser.theme,
 			currentInverter: dbUser.solarManIsOn ? 'solarman' : dbUser.solarEdgeIsOn ? 'solaredge' : '',
@@ -140,7 +190,18 @@ export class Db {
 			goESerial: dbUser.goESerial,
 			goEApiToken: dbUser.goEApiToken,
 
-			useAwattar: dbUser.useAwattar,
+			// Legacy derivation (identical to iOS): the old useAwattar master switch
+			// wins over the priceProvider column default. Off -> 'none'; on -> the
+			// column with 'none'/missing treated as 'awattar'.
+			priceProvider: dbUser.useAwattar
+				? dbUser.priceProvider === 'fixed'
+					? 'fixed'
+					: 'awattar'
+				: 'none',
+			// Derived mirror (= priceProvider !== 'none') kept for engine/UI gates.
+			useAwattar: priceProvider !== 'none',
+
+			fixedPriceData: dbUser.fixedPriceData ?? null,
 
 			chargeWithExcessIsOn: dbUser.chargeWithExcessIsOn,
 			chargeUntilMinBattery: dbUser.chargeUntilMinBattery,
@@ -199,6 +260,8 @@ export class Db {
 				solarEdgeApiKey: settings.solarEdgeApiKey,
 				solarEdgeAccountKey: settings.solarEdgeAccountKey,
 				useAwattar: settings.useAwattar,
+				priceProvider: settings.priceProvider,
+				fixedPriceData: settings.fixedPriceData ?? null,
 				chargeWithExcessIsOn: settings.chargeWithExcessIsOn,
 				chargeUntilMinBattery: settings.chargeUntilMinBattery,
 				forceChargeIsOn: settings.forceChargeIsOn,

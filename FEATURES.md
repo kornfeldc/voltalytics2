@@ -62,6 +62,31 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 ## Done
 
+- **1. Alternative electricity provider with fixed prices** — `in-progress (rev 2)`
+  Revision after user feedback: **three exclusive provider states** (`none` /
+  `awattar` / `fixed`) — the "Use Awattar" toggle is removed on both platforms,
+  and the tariff is edited via a **structured editor**, not raw JSON paste.
+  - Contract rev 2:
+    - `priceProvider` ∈ `'none'` | `'awattar'` | `'fixed'` — exactly one.
+    - Legacy DB compat: `useAwattar` column stays as a **derived mirror**
+      (`= priceProvider != 'none'`). Derivation on read (identical both apps):
+      `useAwattar == false` → `'none'` (legacy master switch wins over the DB
+      column default `'awattar'`); else the `priceProvider` column, with
+      `'none'`/missing → `'awattar'`.
+    - Engine gates keep reading the derived `useAwattar` (= "any provider") —
+      semantics unchanged: `'none'` → no price data, no price-based charging.
+    - `fixedPriceData`: edited via a structured editor (title, ranges with
+      validFrom, rules with month/hour chip toggles + price field), serialized
+      as canonical strict JSON (quoted keys, months/hours sorted); parsers
+      tolerate JS-style unquoted keys on read.
+  - UI: both settings drawers get the 3-state provider picker; `'fixed'` shows
+    the structured tariff editor with inline validation + example prefill.
+    Provider-neutral labels ("prices", not "awattar prices") where the facade
+    feeds.
+  - v1 partial state (verified before rev 2): web `pnpm build` green /
+    svelte-check at baseline; iOS build green + simulator smoke (chip 9,90
+    midday rule, prices-tab stair pattern). Supabase migration executed.
+
 - **0. Base parity (pre-ledger baseline)** — dashboard (live flow diagram, day
   chart, statistics today/month, aWATTar prices), inverter day/month/year
   history, settings (setup/charging/calculator), charging engine

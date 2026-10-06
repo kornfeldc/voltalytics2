@@ -1,7 +1,7 @@
 ﻿import type { IUserSettings } from '$lib/classes/db';
 import { WallBoxApi } from '$lib/classes/wallBox';
 import { InverterApi } from '$lib/classes/interver';
-import { AwattarApi } from '$lib/classes/awattar';
+import { PriceApi } from '$lib/classes/priceApi';
 import moment from 'moment';
 
 export interface IChargingStatus {
@@ -78,7 +78,7 @@ export class ChargingApi {
 		}
 
 		const currentPrice = this.userSettings.useAwattar
-			? ((await AwattarApi.getCurrentPrice()) ?? null)
+			? ((await PriceApi.getCurrentPrice(this.userSettings)) ?? null)
 			: null;
 
 		let chargingStatus = {
@@ -204,7 +204,10 @@ export class ChargingApi {
 		const hoursBetween = targetMoment.diff(now, 'hours');
 
 		// get prices for all those hours
-		const awattarPrices = await AwattarApi.getData({ hours: hoursBetween + 2, offsetHours: 0 });
+		const awattarPrices = await PriceApi.getData(
+			{ hours: hoursBetween + 2, offsetHours: 0 },
+			this.userSettings
+		);
 		if (awattarPrices === null)
 			return {
 				status: 'no_suggestion',

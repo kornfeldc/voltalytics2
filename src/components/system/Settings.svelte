@@ -18,6 +18,7 @@
 	import { type IUserSettings } from '$lib/classes/db';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import type { ICalculationSuggestion } from '$lib/classes/charging';
+	import TariffEditor from './TariffEditor.svelte';
 
 	let { userSettings, saved }: { userSettings: IUserSettings; saved: () => void } = $props();
 	let formData = $state(userSettings);
@@ -42,12 +43,28 @@
 		{ value: 'goe', label: 'Go-E' }
 	];
 
+	const providerOptions: { value: IUserSettings['priceProvider']; label: string }[] = [
+		{ value: 'none', label: 'None' },
+		{ value: 'awattar', label: 'aWATTar' },
+		{ value: 'fixed', label: 'Fixed price tariff' }
+	];
+
 	let currentInverter = $derived.by(() => {
 		return inverterOptions.find((i) => i.value === formData.currentInverter)!;
 	});
 	let currentWallbox = $derived.by(() => {
 		return wallBoxOptions.find((i) => i.value === formData.currentWallbox)!;
 	});
+
+	let currentProvider = $derived.by(() => {
+		return providerOptions.find((i) => i.value === formData.priceProvider) ?? providerOptions[0];
+	});
+
+	const changeProvider = (option: { value: string } | undefined) => {
+		if (!option) return;
+		const match = providerOptions.find((p) => p.value === option.value);
+		if (match) formData.priceProvider = match.value;
+	};
 
 	let userImage = $derived($page.data?.session?.user?.image);
 	let userName = $derived($page.data?.session?.user?.email);
@@ -234,8 +251,30 @@
 
 				<div class="col-span-4 my-3"></div>
 
-				<Label>Use Awattar</Label>
-				<Switch bind:checked={formData.useAwattar} id="awattar"></Switch>
+				<Label>Price provider</Label>
+				<Select.Root selected={currentProvider} onSelectedChange={changeProvider}>
+					<Select.Trigger class="col-span-3">
+						<Select.Value placeholder={providerOptions[0].label} />
+					</Select.Trigger>
+					<Select.Content>
+						{#each providerOptions as providerOption}
+							<Select.Item value={providerOption.value} label={providerOption.label}>
+								{providerOption.label}</Select.Item
+							>
+						{/each}
+					</Select.Content>
+					<Select.Input name="priceProvider" />
+				</Select.Root>
+
+				{#if formData.priceProvider === 'fixed'}
+					<div class="col-span-4">
+						<Label>Fixed price tariff</Label>
+						<TariffEditor
+							value={formData.fixedPriceData}
+							onchange={(json) => (formData.fixedPriceData = json)}
+						/>
+					</div>
+				{/if}
 
 				<Drawer.Close class="col-span-4 mt-4">
 					<Button class="w-full" onclick={() => save()}>SAVE</Button>
@@ -299,7 +338,7 @@
 						></Switch>
 
 						{#if formData.useAwattar}
-							<Label class="col-span-4 mt-3">Force charge when Awattar price is below cent</Label>
+							<Label class="col-span-4 mt-3">Force charge when price is below cent</Label>
 							<div class="col-span-3 pr-3">
 								<Slider
 									value={[formData.forceChargeUnderCent ?? 0]}

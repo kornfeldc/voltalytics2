@@ -11,7 +11,14 @@
 	import moment from 'moment';
 	import type { AwattarEntry } from '$lib/classes/awattar';
 	import { Button } from '$lib/components/ui/button';
-	let { data } = $props();
+	import type { IUserSettings } from '$lib/classes/db';
+	let { data }: { data: { userSettings: Promise<IUserSettings> } } = $props();
+
+	let userSettings = $state(undefined as IUserSettings | undefined);
+
+	$effect(() => {
+		data.userSettings.then((settings: IUserSettings) => (userSettings = settings));
+	});
 
 	const cardClass = 'shadow-lg dark:shadow-slate-800 dark:border-slate-900';
 	const openSettings = () => {
@@ -42,7 +49,7 @@
 {#snippet dashboardCharging()}<DashboardCharging />{/snippet}
 {#snippet dashboardToday()}<DashboardToday />{/snippet}
 {#snippet dashboardMonth()}<DashboardMonth />{/snippet}
-{#snippet dashboardPrices()}<DashboardPrices />{/snippet}
+{#snippet dashboardPrices()}<DashboardPrices {userSettings} />{/snippet}
 {#snippet card(title, rightTitle, contentSnippet, renderPrice = false)}
 	<Card.Header class="flex flex-col p-2 px-4">
 		<div class="grid grid-cols-2">
@@ -116,7 +123,7 @@
 		{#if userSettings?.useAwattar}
 			<div class="dashboard_awattar">
 				<Card.Root class={cardClass}>
-					{@render card('awattar prices', 'cent/kWh', dashboardPrices)}
+					{@render card('prices', 'cent/kWh', dashboardPrices)}
 				</Card.Root>
 			</div>
 		{/if}

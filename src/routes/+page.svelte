@@ -24,7 +24,7 @@
 		<Card.Root class="mt-20 w-full max-w-72 border-slate-900 shadow-lg shadow-slate-800">
 			<Card.Header class="flex flex-col p-2 px-4">
 				<div class="grid grid-cols-2">
-					<h1 class="whitespace-nowrap">awattar prices</h1>
+					<h1 class="whitespace-nowrap">prices</h1>
 					<p class="text-right text-sm text-muted-foreground">cent/kWh</p>
 				</div>
 			</Card.Header>
