@@ -14,7 +14,20 @@
 	 */
 	let { value, onchange }: { value: string | null; onchange: (json: string) => void } = $props();
 
-	const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const MONTHS = [
+		'Jan',
+		'Feb',
+		'Mar',
+		'Apr',
+		'May',
+		'Jun',
+		'Jul',
+		'Aug',
+		'Sep',
+		'Oct',
+		'Nov',
+		'Dec'
+	];
 
 	interface EditRule {
 		months: boolean[];
@@ -42,8 +55,11 @@
 			validFrom: range.validFrom,
 			prices: range.prices.map(
 				(rule: IFixedPriceRule): EditRule => ({
-					months: flagsOf(rule.months.map((m) => m - 1), 12),
-					hours: flagsOf(rule.hours, 23),
+					months: flagsOf(
+						rule.months.map((m) => m - 1),
+						12
+					),
+					hours: flagsOf(rule.hours, 24),
 					price: rule.price
 				})
 			)
@@ -58,8 +74,7 @@
 	// svelte-ignore state_referenced_locally
 	let ranges = $state<EditRange[]>(toEditRanges(value));
 
-	const indices = (flags: boolean[]): number[] =>
-		flags.flatMap((on, i) => (on ? [i] : []));
+	const indices = (flags: boolean[]): number[] => flags.flatMap((on, i) => (on ? [i] : []));
 
 	const serialize = (): string =>
 		JSON.stringify({
@@ -67,8 +82,11 @@
 			ranges: ranges.map((range) => ({
 				validFrom: range.validFrom,
 				prices: range.prices.map((rule) => ({
-					months: indices(rule.months).map((i) => i + 1),
-					hours: indices(rule.hours),
+					// Stored lists are strings, matching both web and iOS parsers.
+					months: indices(rule.months)
+						.map((i) => i + 1)
+						.join(','),
+					hours: indices(rule.hours).join(','),
 					price: rule.price ?? 0
 				}))
 			}))
@@ -118,18 +136,30 @@
 				validFrom: moment().format('YYYY-MM-DD'),
 				prices: [
 					{
-						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1), 12),
-						hours: flagsOf([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], 23),
+						months: flagsOf(
+							[1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1),
+							12
+						),
+						hours: flagsOf([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], 24),
 						price: 30
 					},
 					{
-						months: flagsOf([1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1), 12),
-						hours: flagsOf([0, 1, 2, 3, 4, 5, 23], 23),
+						months: flagsOf(
+							[1, 2, 3, 4, 5, 9, 10, 11, 12].map((m) => m - 1),
+							12
+						),
+						hours: flagsOf([0, 1, 2, 3, 4, 5, 23], 24),
 						price: 25
 					},
 					{
-						months: flagsOf([6, 7, 8].map((m) => m - 1), 12),
-						hours: flagsOf(Array.from({ length: 24 }, (_, i) => i), 23),
+						months: flagsOf(
+							[6, 7, 8].map((m) => m - 1),
+							12
+						),
+						hours: flagsOf(
+							Array.from({ length: 24 }, (_, i) => i),
+							24
+						),
 						price: 28
 					}
 				]
@@ -152,7 +182,9 @@
 				<Label class="whitespace-nowrap">Valid from</Label>
 				<Input type="date" bind:value={range.validFrom} class="w-40" />
 				<div class="grow"></div>
-				<Button variant="ghost" size="sm" onclick={() => removeRange(rangeIndex)}>Delete range</Button>
+				<Button variant="ghost" size="sm" onclick={() => removeRange(rangeIndex)}
+					>Delete range</Button
+				>
 			</div>
 
 			{#each range.prices as rule, ruleIndex (ruleIndex)}
@@ -209,5 +241,5 @@
 
 	<Button variant="outline" size="sm" onclick={addRange}>Add price range</Button>
 
-	<p class="text-muted-foreground text-xs">{validation}</p>
+	<p class="text-xs text-muted-foreground">{validation}</p>
 </div>

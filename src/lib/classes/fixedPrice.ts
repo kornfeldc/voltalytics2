@@ -17,13 +17,14 @@ export interface IFixedPriceTariff {
 	ranges: IFixedPriceRange[];
 }
 
-/** Parses a comma-separated list of numbers with whitespace tolerated. */
+/** Reads stored CSV lists, plus arrays emitted by the broken web editor. */
 function parseList(value: unknown, min: number, max: number): number[] | undefined {
-	if (typeof value !== 'string') return undefined;
+	if (typeof value !== 'string' && !Array.isArray(value)) return undefined;
 
 	const list: number[] = [];
-	for (const part of value.split(',')) {
-		const num = Number(part.trim());
+	for (const part of typeof value === 'string' ? value.split(',') : value) {
+		if (typeof part !== 'string' && typeof part !== 'number') return undefined;
+		const num = typeof part === 'number' ? part : Number(part.trim());
 		if (!Number.isInteger(num) || num < min || num > max) return undefined;
 		list.push(num);
 	}

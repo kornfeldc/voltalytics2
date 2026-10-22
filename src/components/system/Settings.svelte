@@ -63,7 +63,10 @@
 	const changeProvider = (option: { value: string } | undefined) => {
 		if (!option) return;
 		const match = providerOptions.find((p) => p.value === option.value);
-		if (match) formData.priceProvider = match.value;
+		if (match) {
+			formData.priceProvider = match.value;
+			formData.useAwattar = match.value !== 'none';
+		}
 	};
 
 	let userImage = $derived($page.data?.session?.user?.image);
@@ -345,9 +348,9 @@
 									onValueChange={(v) => {
 										formData.forceChargeUnderCent = v[0];
 									}}
-								min={-10}
-								max={40}
-								step={0.1}
+									min={-10}
+									max={40}
+									step={0.1}
 								/>
 							</div>
 							<Input type="number" bind:value={formData.forceChargeUnderCent} readonly />

@@ -22,16 +22,19 @@ Statuses: `backlog` → `in-progress (web / ios)` → `done` · or `web-only` / 
 **Goal:** one sentence, user-visible outcome.
 
 **Contract** (write once, implement identically on both platforms):
+
 - DB: new/changed `user` columns (name, type, default)
 - API: new/changed endpoints (web `src/routes/api/**`, iOS = in-process call in
   the corresponding Domain class) — request/response JSON shapes
 - Engine: changed decision semantics in `charging.ts` / `ChargingApi.swift`
 
 **Web:**
+
 - Files to touch: <routes, components, classes>
 - Notes/quirks: <auth prologue, settingsChanged event, shadcn usage…>
 
 **iOS:**
+
 - Files to touch: <Domain/, Views/, Components/>
 - Native treatment: <glass, drawer, Swift Charts…>
 
@@ -39,6 +42,7 @@ Statuses: `backlog` → `in-progress (web / ios)` → `done` · or `web-only` / 
 platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 **Parity checklist:**
+
 - [ ] web build green + touched-route smoke test
 - [ ] iOS build green + simulator/device smoke test
 - [ ] engine semantics identical (if touched)
@@ -79,6 +83,22 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
       validFrom, rules with month/hour chip toggles + price field), serialized
       as canonical strict JSON (quoted keys, months/hours sorted); parsers
       tolerate JS-style unquoted keys on read.
+    - Save/reload regression (web): month/hour lists must remain comma-separated
+      strings, matching the existing DB format and both platform parsers. Preserve
+      every selected hour (0–23), month (1–12), price and range when saving unrelated
+      settings or editing a tariff. Derive `useAwattar` from `priceProvider` on save
+      as on iOS; switching providers retains the tariff for later reuse.
+      Web reads also accept the arrays emitted by the broken editor, then write
+      strings on the next editor save to restore iOS compatibility. This cannot
+      restore hours already dropped by the old editor or rules overwritten later.
+      Fix status is `web-only` (complete): the iOS editor already writes this format and derives
+      the legacy flag. Browser regression: `node scripts/test-tariff-roundtrip.mjs`.
+      Verified: web production build + browser editor/save/reload regression with
+      a mocked Supabase transport; svelte-check unchanged at 27 errors / 10 warnings
+      (no new errors in touched files). iOS build + iPhone 17 simulator launch of
+      fixed-tariff settings and prices using DEBUG fixtures; no live account writes.
+      No new native design deviations. Svelte formatting checked with Prettier
+      3.6.2 because the installed 3.8.0 crashes with the existing Svelte plugin.
   - UI: both settings drawers get the 3-state provider picker; `'fixed'` shows
     the structured tariff editor with inline validation + example prefill.
     Provider-neutral labels ("prices", not "awattar prices") where the facade

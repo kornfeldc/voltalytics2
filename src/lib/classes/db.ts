@@ -259,7 +259,8 @@ export class Db {
 				solarEdgeIsOn: settings.currentInverter === 'solaredge',
 				solarEdgeApiKey: settings.solarEdgeApiKey,
 				solarEdgeAccountKey: settings.solarEdgeAccountKey,
-				useAwattar: settings.useAwattar,
+				// Derived mirror, like iOS; the drawer may still hold the old flag.
+				useAwattar: settings.priceProvider !== 'none',
 				priceProvider: settings.priceProvider,
 				fixedPriceData: settings.fixedPriceData ?? null,
 				chargeWithExcessIsOn: settings.chargeWithExcessIsOn,
