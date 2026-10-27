@@ -2,7 +2,8 @@
 import { WallBoxApi } from '$lib/classes/wallBox';
 import { InverterApi } from '$lib/classes/interver';
 import { PriceApi } from '$lib/classes/priceApi';
-import moment from 'moment';
+import type { AwattarEntry } from '$lib/classes/awattar';
+import moment, { type Moment } from 'moment';
 
 export interface IChargingStatus {
 	gotInverterData: boolean;
@@ -38,6 +39,10 @@ export interface ICalculationResult {
 	suggestedKwToSet?: number;
 	hoursCharging?: number;
 	estimatedPrice?: number;
+	/** Start of the first planned hour -> forceChargeFrom. */
+	chargingFrom?: Date;
+	/** End of the last planned hour -> forceChargeUntil. */
+	chargingUntil?: Date;
 }
 
 export interface ICalculationSuggestion extends ICalculationResult {
@@ -49,6 +54,17 @@ export interface ICalculationSuggestion extends ICalculationResult {
 export function isManualChargeActive(userSettings: IUserSettings): boolean {
 	if (!userSettings.manualChargeIsOn) return false;
 	return !userSettings.manualChargeUntil || moment(userSettings.manualChargeUntil).isAfter();
+}
+
+/**
+ * A calculated plan only force-charges inside [forceChargeFrom, forceChargeUntil)
+ * (FEATURES.md #2); unset bounds = unlimited (manual force charging).
+ */
+export function isInForceChargeWindow(userSettings: IUserSettings): boolean {
+	const now = moment();
+	if (userSettings.forceChargeFrom && now.isBefore(userSettings.forceChargeFrom)) return false;
+	if (userSettings.forceChargeUntil && !now.isBefore(userSettings.forceChargeUntil)) return false;
+	return true;
 }
 
 export class ChargingApi {
@@ -221,11 +237,10 @@ export class ChargingApi {
 				failedReason: 'not_enough_data'
 			} as ICalculationSuggestion;
 
-		const prices = awattarPrices
+		const entries = awattarPrices
 			.filter((p) => p.time.startOf('hour').isAfter(moment(), 'hour'))
-			.filter((p) => p.time.startOf('hour').isSameOrBefore(targetMoment, 'hour'))
-			.map((p) => p.grossPrice);
-		const calculationResult = this.calculateBestForceChargingValues(missingKwh, prices);
+			.filter((p) => p.time.startOf('hour').isSameOrBefore(targetMoment, 'hour'));
+		const calculationResult = this.calculateBestForceChargingValues(missingKwh, entries);
 
 		return {
 			status: 'suggestion',
@@ -235,11 +250,12 @@ export class ChargingApi {
 
 	private calculateBestForceChargingValues(
 		kwhToCharge: number,
-		prices: Array<number>
+		entries: Array<AwattarEntry>
 	): ICalculationResult {
 		// Constants for minimum and maximum charging power
 		const minChargingPower = this.userSettings.minChargingPower;
 		const maxChargingPower = this.userSettings.maxChargingPower;
+		const prices = entries.map((e) => e.grossPrice);
 
 		console.log('calculateBestForceChargingValues', kwhToCharge, prices);
 
@@ -247,6 +263,12 @@ export class ChargingApi {
 		let suggestedKwToSet = 0;
 		let hoursCharging = 0;
 		let estimatedPrice = 0;
+		// The engine only force-charges between the first and the last planned
+		// hour, so the plan also stops when the price never rises (flat tariffs).
+		// The greedy pass takes every hour <= threshold until the kWh are reached,
+		// so "price < threshold inside the window" are exactly the planned hours.
+		let firstHour: Moment | undefined;
+		let lastHour: Moment | undefined;
 
 		// Sort prices in ascending order to find the lowest viable threshold
 		const sortedPrices = [...prices].sort((a, b) => a - b);
@@ -257,15 +279,20 @@ export class ChargingApi {
 			let totalKwhCharged = 0;
 			let totalCost = 0;
 			let hourCount = 0;
+			let first: Moment | undefined;
+			let last: Moment | undefined;
 
 			// Charge only in hours where price is below or equal to the threshold
-			for (let price of prices) {
+			for (let entry of entries) {
+				const price = entry.grossPrice;
 				if (price <= priceThreshold) {
 					// Calculate maximum charging speed within limits
 					const chargingSpeed = Math.min(maxChargingPower, kwhToCharge - totalKwhCharged);
 					totalKwhCharged += chargingSpeed;
 					totalCost += price * chargingSpeed;
 					hourCount++;
+					first ??= entry.time;
+					last = entry.time;
 
 					// Stop if required kWh is reached
 					if (totalKwhCharged >= kwhToCharge) break;
@@ -278,9 +305,23 @@ export class ChargingApi {
 				suggestedKwToSet = Math.min(maxChargingPower, kwhToCharge / hourCount);
 				hoursCharging = hourCount;
 				estimatedPrice = totalCost;
+				firstHour = first;
+				lastHour = last;
 				break;
 			}
 		}
+
+		// Target not reachable in time: charge every remaining hour at full power
+		// instead of suggesting nothing (0 kW, 0 hours)
+		if (hoursCharging === 0 && entries.length > 0) {
+			suggestedPriceToSet = sortedPrices[sortedPrices.length - 1];
+			suggestedKwToSet = maxChargingPower;
+			hoursCharging = entries.length;
+			estimatedPrice = prices.reduce((sum, price) => sum + price * maxChargingPower, 0);
+			firstHour = entries[0].time;
+			lastHour = entries[entries.length - 1].time;
+		}
+
 		// raise by 1 so that forceCharging works with < price
 		suggestedPriceToSet += 0.1;
 
@@ -292,7 +333,9 @@ export class ChargingApi {
 			suggestedPriceToSet,
 			suggestedKwToSet,
 			hoursCharging,
-			estimatedPrice
+			estimatedPrice,
+			chargingFrom: firstHour ? moment(firstHour).toDate() : undefined,
+			chargingUntil: lastHour ? moment(lastHour).add(1, 'hours').toDate() : undefined
 		};
 	}
 
@@ -311,6 +354,10 @@ export class ChargingApi {
 
 	private getForceChargeSuggestion(status: IChargingStatus): number {
 		if (!this.userSettings.forceChargeIsOn) return 0;
+
+		// a calculated plan ends at its window end, even if the price never rises
+		// above the threshold (flat tariffs)
+		if (!isInForceChargeWindow(this.userSettings)) return 0;
 
 		if (!this.userSettings.useAwattar) return this.userSettings.forceChargeKw ?? 5;
 

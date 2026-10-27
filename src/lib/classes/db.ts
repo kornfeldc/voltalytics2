@@ -33,6 +33,12 @@ export interface IUserSettings {
 	forceChargeIsOn?: boolean;
 	forceChargeUnderCent?: number;
 	forceChargeKw?: number;
+	/**
+	 * Window of a calculated plan (FEATURES.md #2): force charging only runs in
+	 * [forceChargeFrom, forceChargeUntil). Unset = unlimited (manual force charging).
+	 */
+	forceChargeFrom?: Date;
+	forceChargeUntil?: Date;
 
 	autoExecuteSuggestions: boolean;
 	autoTurnOffForceCharging: boolean;
@@ -81,6 +87,8 @@ interface IDbUserRow {
 	forceChargeIsOn?: boolean;
 	forceChargeUnderCent?: number;
 	forceChargeKw?: number;
+	forceChargeFrom?: string | Date | null;
+	forceChargeUntil?: string | Date | null;
 	autoExecuteSuggestions?: boolean;
 	autoTurnOffForceCharging?: boolean;
 	carBatteryKwh?: number;
@@ -209,6 +217,10 @@ export class Db {
 			forceChargeIsOn: dbUser.forceChargeIsOn,
 			forceChargeUnderCent: dbUser.forceChargeUnderCent,
 			forceChargeKw: dbUser.forceChargeKw,
+			forceChargeFrom: dbUser.forceChargeFrom ? moment(dbUser.forceChargeFrom).toDate() : undefined,
+			forceChargeUntil: dbUser.forceChargeUntil
+				? moment(dbUser.forceChargeUntil).toDate()
+				: undefined,
 
 			autoExecuteSuggestions: dbUser.autoExecuteSuggestions,
 			autoTurnOffForceCharging: dbUser.autoTurnOffForceCharging,
@@ -239,9 +251,30 @@ export class Db {
 			.from('user')
 			.update({
 				forceChargeIsOn: false,
+				forceChargeFrom: null,
+				forceChargeUntil: null,
 				lastForceChargeReset: moment().toDate()
 			})
 			.eq('email', this.parseEmail(email));
+	}
+
+	/**
+	 * Ends a calculated force-charge plan once its window is over (FEATURES.md
+	 * #2): force charging off and the window cleared, so the UI stops showing it
+	 * and the next night doesn't start again. No-op without an expired window.
+	 */
+	static async expireForceChargeWindow(email: string) {
+		const supabase = this.getClient();
+		const { error } = await supabase
+			.from('user')
+			.update({
+				forceChargeIsOn: false,
+				forceChargeFrom: null,
+				forceChargeUntil: null
+			})
+			.eq('email', this.parseEmail(email))
+			.lt('forceChargeUntil', moment().toDate().toISOString());
+		if (error) console.error(error);
 	}
 
 	static async saveUserSettings(email: string, settings: IUserSettings) {
@@ -268,6 +301,10 @@ export class Db {
 				forceChargeIsOn: settings.forceChargeIsOn,
 				forceChargeUnderCent: settings.forceChargeUnderCent,
 				forceChargeKw: settings.forceChargeKw,
+				// saved together with forceChargeIsOn, so a stale drawer can never
+				// write "on" without its plan window (null = unlimited)
+				forceChargeFrom: settings.forceChargeFrom ?? null,
+				forceChargeUntil: settings.forceChargeUntil ?? null,
 				autoExecuteSuggestions: settings.autoExecuteSuggestions,
 				autoTurnOffForceCharging: settings.autoTurnOffForceCharging,
 				goEIsOn: settings.currentWallbox === 'goe',

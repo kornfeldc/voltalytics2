@@ -4,6 +4,7 @@
 	import { PriceApi } from '$lib/classes/priceApi';
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { hourState } from '$lib/state/hourState.svelte';
 
 	let {
 		hours = 24,
@@ -29,8 +30,12 @@
 		});
 	});
 
+	let latestRequest = 0;
 	const getEntries = async (settings?: IUserSettings): Promise<void> => {
-		entries = (await PriceApi.getData({ hours, offsetHours: 0 }, settings)) ?? [];
+		const request = ++latestRequest;
+		const result = (await PriceApi.getData({ hours, offsetHours: 0 }, settings)) ?? [];
+		// a slow superseded request must not overwrite the newer entries
+		if (request === latestRequest) entries = result;
 	};
 
 	const getFormattedFrom = (entry: AwattarEntry): string => {
@@ -95,24 +100,26 @@
 	};
 </script>
 
-{#await getEntries(userSettings)}
-	{#each [0, 1, 2, 3, 4, 5, 6] as i}
-		<Skeleton class="mb-2 h-[2em] w-full" />
-	{/each}
-{:then _}
-	{#each entries as entry}
-		<div class="flex {getClass(entry)}">
-			<div class="grow">
-				<div
-					style="width: {getWidth(entry)}%; min-width:0.1em"
-					class="to-50 rounded-md bg-gradient-to-r indent-2 {getGradient(entry)}"
-				>
-					{getFormattedFrom(entry)}
+{#key hourState.hour}
+	{#await getEntries(userSettings)}
+		{#each [0, 1, 2, 3, 4, 5, 6] as i}
+			<Skeleton class="mb-2 h-[2em] w-full" />
+		{/each}
+	{:then _}
+		{#each entries as entry}
+			<div class="flex {getClass(entry)}">
+				<div class="grow">
+					<div
+						style="width: {getWidth(entry)}%; min-width:0.1em"
+						class="to-50 rounded-md bg-gradient-to-r indent-2 {getGradient(entry)}"
+					>
+						{getFormattedFrom(entry)}
+					</div>
+				</div>
+				<div class="ml-2 text-right">
+					{getFormattedPrice(entry)}
 				</div>
 			</div>
-			<div class="ml-2 text-right">
-				{getFormattedPrice(entry)}
-			</div>
-		</div>
-	{/each}
-{/await}
+		{/each}
+	{/await}
+{/key}

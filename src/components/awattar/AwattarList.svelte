@@ -5,6 +5,7 @@
 	import moment from 'moment';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { awattarState } from '$lib/state/awattarState.svelte';
+	import { hourState } from '$lib/state/hourState.svelte';
 	import NoData from '../system/NoData.svelte';
 
 	let {
@@ -12,14 +13,18 @@
 		userSettings
 	}: { hours?: number; userSettings?: IUserSettings } = $props();
 
+	let latestRequest = 0;
 	const getEntries = async (settings?: IUserSettings): Promise<AwattarEntry[]> => {
+		const request = ++latestRequest;
 		const result = (await PriceApi.getData({ hours }, settings)) ?? [];
+		// {#await} drops a superseded promise, but not this side effect - a slow
+		// stale request must not overwrite the shared current price
+		if (request !== latestRequest) return result;
 
 		const now = moment().startOf('hour');
-		result.forEach((entry: AwattarEntry) => {
-			const entryFrom = moment(entry.time);
-			if (now.isSame(entryFrom, 'hour')) awattarState.currentPrice = entry.grossPrice;
-		});
+		awattarState.currentPrice = result.find((entry) =>
+			now.isSame(moment(entry.time), 'hour')
+		)?.grossPrice;
 		return result;
 	};
 
@@ -50,19 +55,21 @@
 	};
 </script>
 
-{#await getEntries(userSettings)}
-	{#each [0, 1, 2, 3, 4, 5, 6] as i}
-		<Skeleton class="mb-2 h-[1em] w-full" />
-	{/each}
-{:then awattarEntries}
-	<div class="grid grid-cols-2">
-		{#each awattarEntries as entry}
-			<div class={getEntryClass(entry)}>
-				{getFormattedFromTo(entry)}
-			</div>
-			<div class="text-right {getEntryClass(entry)}">{getFormattedPrice(entry)}</div>
+{#key hourState.hour}
+	{#await getEntries(userSettings)}
+		{#each [0, 1, 2, 3, 4, 5, 6] as i}
+			<Skeleton class="mb-2 h-[1em] w-full" />
 		{/each}
-	</div>
-{:catch _}
-	<NoData></NoData>
-{/await}
+	{:then awattarEntries}
+		<div class="grid grid-cols-2">
+			{#each awattarEntries as entry}
+				<div class={getEntryClass(entry)}>
+					{getFormattedFromTo(entry)}
+				</div>
+				<div class="text-right {getEntryClass(entry)}">{getFormattedPrice(entry)}</div>
+			{/each}
+		</div>
+	{:catch _}
+		<NoData></NoData>
+	{/await}
+{/key}

@@ -9,6 +9,7 @@
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
+	import moment from 'moment';
 	import NoData from '../system/NoData.svelte';
 
 	let chargingInfo = $state({} as IChargingInfo);
@@ -163,9 +164,25 @@
 				chargingInfo.userSettings.forceChargeKw +
 				' kw, price < ' +
 				chargingInfo.userSettings.forceChargeUnderCent +
-				' cent)';
-		else ret += ' (' + chargingInfo.userSettings.forceChargeKw + ' kw)';
+				' cent' +
+				getForceChargeWindowSfx() +
+				')';
+		else
+			ret +=
+				' (' + chargingInfo.userSettings.forceChargeKw + ' kw' + getForceChargeWindowSfx() + ')';
 		return ret;
+	};
+
+	/** Calculated plan window (FEATURES.md #2) - force charging stops at its end. */
+	const getForceChargeWindowSfx = (): string => {
+		const { forceChargeFrom, forceChargeUntil } = chargingInfo.userSettings;
+		if (!forceChargeFrom || !forceChargeUntil) return '';
+		return (
+			', ' +
+			moment(forceChargeFrom).format('HH:mm') +
+			'–' +
+			moment(forceChargeUntil).format('HH:mm')
+		);
 	};
 
 	const settingsChanged = async () => {

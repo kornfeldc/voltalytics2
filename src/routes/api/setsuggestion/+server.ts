@@ -14,8 +14,9 @@ export async function GET({ url }) {
 	if (!userSettings.autoExecuteSuggestions)
 		return json({ result: 'auto_execute_suggestions_disabled' });
 
-	// clear an expired manual boost so it doesn't linger in the DB / UI
+	// clear an expired manual boost / finished charge plan so it doesn't linger in the DB / UI
 	await Db.expireManualCharge(userSettings.email);
+	await Db.expireForceChargeWindow(userSettings.email);
 	userSettings = await Db.getUserSettingsByHash(userHash!);
 	if (!userSettings) redirect(307, '/');
 
@@ -62,6 +63,9 @@ function shouldResetForceCharge(userSettings: any) {
 
 	if (!userSettings.forceChargeIsOn) return false;
 	if (!userSettings.autoTurnOffForceCharging) return false;
+	// a calculated plan ends at its own window end - a target hour after 06:00
+	// must not be cut off (expired windows are cleared before this check)
+	if (userSettings.forceChargeUntil) return false;
 	if (moment().isBefore(morning)) return false;
 	if (moment().isAfter(morningUntil)) return false;
 	if (!userSettings.lastForceChargeReset) return true;

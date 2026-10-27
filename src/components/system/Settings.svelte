@@ -19,6 +19,7 @@
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import type { ICalculationSuggestion } from '$lib/classes/charging';
 	import TariffEditor from './TariffEditor.svelte';
+	import moment from 'moment';
 
 	let { userSettings, saved }: { userSettings: IUserSettings; saved: () => void } = $props();
 	let formData = $state(userSettings);
@@ -115,8 +116,20 @@
 		formData.forceChargeIsOn = true;
 		formData.forceChargeKw = calculationResult.suggestedKwToSet;
 		formData.forceChargeUnderCent = calculationResult.suggestedPriceToSet;
+		// the plan window makes force charging stop on its own (FEATURES.md #2)
+		formData.forceChargeFrom = calculationResult.chargingFrom;
+		formData.forceChargeUntil = calculationResult.chargingUntil;
 		await save();
 	};
+
+	// a manual toggle drops a calculated plan: manual force charging is unlimited
+	const setForceCharging = (on: boolean) => {
+		formData.forceChargeIsOn = on;
+		formData.forceChargeFrom = undefined;
+		formData.forceChargeUntil = undefined;
+	};
+
+	const formatTime = (value: Date | string | undefined) => moment(value).format('HH:mm');
 
 	const formatValue = (val: number) => {
 		return new Intl.NumberFormat('de-DE', {
@@ -149,6 +162,15 @@
 						<div class="text-right">
 							{calculationResult.hoursCharging}
 						</div>
+
+						{#if calculationResult.chargingFrom && calculationResult.chargingUntil}
+							<div class="col-span-3">Charging window:</div>
+							<div class="whitespace-nowrap text-right">
+								{formatTime(calculationResult.chargingFrom)} – {formatTime(
+									calculationResult.chargingUntil
+								)}
+							</div>
+						{/if}
 
 						<div class="col-span-3">Estimated price:</div>
 						<div class="text-right">
@@ -332,10 +354,21 @@
 						<div class="col-span-4 mt-4"></div>
 					{/if}
 					<Label class="col-span-3">Activate Force Charging</Label>
-					<Switch class="justify-self-end" id="force" bind:checked={formData.forceChargeIsOn}
+					<Switch
+						class="justify-self-end"
+						id="force"
+						checked={formData.forceChargeIsOn}
+						onCheckedChange={(v) => setForceCharging(v)}
 					></Switch>
 
 					{#if formData.forceChargeIsOn}
+						{#if formData.forceChargeFrom && formData.forceChargeUntil}
+							<p class="col-span-4 text-xs text-muted-foreground">
+								Calculated plan: {formatTime(formData.forceChargeFrom)} – {formatTime(
+									formData.forceChargeUntil
+								)}, then off
+							</p>
+						{/if}
 						<Label class="col-span-3">Turn off force charging in the morning</Label>
 						<Switch class="justify-self-end" bind:checked={formData.autoTurnOffForceCharging}
 						></Switch>

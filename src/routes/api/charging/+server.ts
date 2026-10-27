@@ -12,8 +12,9 @@ export async function GET({ locals, url }) {
 	let userSettings = await Db.getUserSettings(session.user.email);
 	if (!userSettings) redirect(307, '/');
 
-	// clear an expired manual boost so the UI stops showing it
+	// clear an expired manual boost / finished charge plan so the UI stops showing it
 	await Db.expireManualCharge(userSettings.email);
+	await Db.expireForceChargeWindow(userSettings.email);
 	userSettings = await Db.getUserSettings(session.user.email);
 	if (!userSettings) redirect(307, '/');
 

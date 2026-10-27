@@ -14,12 +14,6 @@
 	import type { IUserSettings } from '$lib/classes/db';
 	let { data }: { data: { userSettings: Promise<IUserSettings> } } = $props();
 
-	let userSettings = $state(undefined as IUserSettings | undefined);
-
-	$effect(() => {
-		data.userSettings.then((settings: IUserSettings) => (userSettings = settings));
-	});
-
 	const cardClass = 'shadow-lg dark:shadow-slate-800 dark:border-slate-900';
 	const openSettings = () => {
 		drawerState.isOpened = true;
@@ -49,7 +43,6 @@
 {#snippet dashboardCharging()}<DashboardCharging />{/snippet}
 {#snippet dashboardToday()}<DashboardToday />{/snippet}
 {#snippet dashboardMonth()}<DashboardMonth />{/snippet}
-{#snippet dashboardPrices()}<DashboardPrices {userSettings} />{/snippet}
 {#snippet card(title, rightTitle, contentSnippet, renderPrice = false)}
 	<Card.Header class="flex flex-col p-2 px-4">
 		<div class="grid grid-cols-2">
@@ -71,6 +64,9 @@
 
 <section class="dashboard_grid">
 	{#await data.userSettings then userSettings}
+		<!-- declared here so it gets the resolved settings: undefined settings make
+		PriceApi fall back to aWATTar (public landing page) -->
+		{#snippet dashboardPrices()}<DashboardPrices {userSettings} />{/snippet}
 		{#if !userSettings?.currentInverter && !userSettings?.currentWallbox && !userSettings?.useAwattar}
 			<div class="dashboard_live">
 				<Card.Root class={cardClass} onclick={() => openSettings()}>

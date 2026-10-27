@@ -7,6 +7,8 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"test:tariff": "node scripts/test-tariff-roundtrip.mjs",
+		"test:prices": "node scripts/test-price-display.mjs",
+		"test:charging-plan": "node scripts/test-charging-plan.mjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
