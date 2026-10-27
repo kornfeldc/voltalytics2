@@ -60,6 +60,69 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 ## In progress
 
+### 3. iPhone Duo / large-screen dashboard with 3D energy scene — ios-only (in-progress, experiment)
+
+**Goal:** on the iPhone Duo inner display (and other regular-width screens) the
+dashboard becomes a two-pane layout like the Tesla app's tablet/Duo redesign
+(Oct 2026): cards (day chart, go-e, today, month, prices) on the left, a large
+animated 3D visualization of the house — sun, solar roof, battery, grid, car —
+with live power flows on the right. Rev 3 (user feedback): phones (and the
+Duo outer display) show the same scene full-width on top with all cards below
+on one scrolling screen — the 2D flow diagram is replaced on iOS. Rev 4:
+half-open postures follow the fold (iOS 27.1 `.division` reserved region):
+book posture splits 50/50 at the crease, laptop posture stacks scene above
+cards; fully unfolded keeps the regular split. Rev 2: the house is modelled on the user's own (drone photo:
+terracotta roof, black PV array + skylight, carport with second PV block), the
+car is a black Tesla Model Y, and the scene reflects the live weather at the
+user's address (fallback Eisenstadt) with temperature + conditions shown.
+
+**Scope:** `ios-only` — the user scoped this to the iOS app ("regarding the ios
+version"); it is a native large-screen/foldable presentation, the web dashboard
+is unaffected.
+
+**Contract:** no DB columns, API shapes or engine semantics change. The scene
+visualizes data the dashboard already loads (inverter realtime, go-e charging
+status, current price) plus live weather:
+
+- Weather: Open-Meteo `GET /v1/forecast?latitude&longitude&current=temperature_2m,
+  weather_code,cloud_cover,precipitation,snowfall,snow_depth,wind_speed_10m,is_day`
+  (free, no key, CC BY 4.0 — attribution in Settings), cached 10 min. Only
+  coordinates rounded to 2 decimals (~1 km) leave the device.
+- Location: Settings address geocoded on-device by Apple MapKit
+  (`MKGeocodingRequest`), result cached; empty or unresolvable → Eisenstadt
+  (47.8457, 16.5232). The same coordinates drive the scene's sun position.
+
+**iOS:**
+
+- Files: `Views/Dashboard/DashboardView.swift` (stacked/split switch by size
+  class + width; split from 700 pt regular width), `Views/Dashboard/EnergyHero/*` (RealityKit scene: `Lot` layout of the
+  property, car, textures, sky/weather overlays, callouts),
+  `Domain/WeatherApi.swift` (Open-Meteo + geocoding), `LiveEnergyModel.swift`
+  (realtime polling hoisted out of the removed 2D `LiveFlowView` so every
+  layout shares one poll and survives fold/unfold), `SettingsSheet.swift`
+  (address).
+- Native treatment: procedural RealityKit scene (no 3D assets), bloom on iOS 27,
+  sun position from time of day + place; weather drives sky, clouds, sun
+  strength, rain/snow/fog/lightning overlays and wet/snow-covered surfaces;
+  layout decisions use size classes, not orientation (Apple's iPhone Duo
+  guidance — the inner display ignores supported orientations).
+
+**Settings sync:** deliberate deviation from the rule of three — the weather
+address is an **on-device** setting (`UserDefaults`, key `weatherAddress`), not
+a Supabase `user` column: it only feeds this iOS-only scene, and a column would
+need a production migration plus a web settings field nobody uses. Revisit
+(column `weatherAddress text null` + `IUserSettings`/Settings.svelte) if it
+should sync across devices.
+
+**Parity checklist:**
+
+- [x] iOS build green + iPhone Duo simulator: unfolded inner display in
+      landscape (split, vertical bars) + scene panes via `-voltalytics-qa-hero`
+- [ ] inner display in portrait (stacked, two card columns) — needs a rotate
+- [x] stacked layout with the scene on an iPhone 17 simulator (light mode)
+- [x] deviations documented (entry + iOS README)
+- [ ] ledger status updated (→ done after the inner-display check)
+
 ### 2. Calculated force-charge plan stops on its own + price display fixes — in-progress (implemented web + ios, migration done; production check + iOS device install pending)
 
 **Goal:** a plan from the calculator ("Use as force charging parameters" /
