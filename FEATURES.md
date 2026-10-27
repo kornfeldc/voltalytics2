@@ -133,8 +133,11 @@ status, current price) plus live weather:
   transparent over the sky until the page scrolls past the scene, the street
   fades into the page background, cards below (existing grid). Split from
   900 px — card column `min(max(40 % width, 340), 460)` px with its own TopBar
-  (the layout hides its bar and lifts the 800 px limit), scene sticky at full
-  height on the right. No fold postures on the web.
+  styled as a card (pinned; cards fade out beneath it — the layout hides its
+  bar and lifts the 800 px limit), scene sticky at full
+  height on the right; its left edge fades into the card column (eased, 12 %
+  of its width, max 180 px — user request; the iOS split keeps a hard edge).
+  No fold postures on the web.
 - Notes: Three.js is loaded lazily (dynamic import, own ~565 kB chunk) only
   when the scene mounts; glow = additive halo sprites instead of a bloom pass
   (transparent canvas); the 2D sky/weather overlays are canvas layers like the
@@ -156,9 +159,11 @@ status, current price) plus live weather:
   - Pulses keep their flow colour; iOS bloom whitens their cores.
 - QA: `node scripts/qa-energy-scene.mjs [outDir]` mounts `/v` layout +
   dashboard (`scripts/qa/SceneHarness.svelte`) with mocked API + Open-Meteo
-  (fixtures = iOS `MockData.swift`) and screenshots 15 cases: phone/tablet
-  stacked, desktop split, night, rain, snow, toggle off, fresh browser (default
-  off), settings, and three 402×874 parity cases against the iOS simulator. A
+  (fixtures = iOS `MockData.swift`) and screenshots 17 cases: phone/tablet
+  stacked, desktop split (also scrolled), 1920 px split at night, night, rain,
+  snow, toggle off,
+  fresh browser (default off), settings, and three 402×874 parity cases against
+  the iOS simulator. A
   settings flow types an address (one debounced Nominatim call, chip follows)
   and switches the view off; a drawer check swipes the Settings sheet on a phone
   (it must fit the screen and scroll instead of closing).
@@ -179,7 +184,7 @@ with the browser cache). Revisit (columns + `IUserSettings`/Settings.svelte/
 - [x] deviations documented (entry + iOS README)
 - [x] web: `pnpm run build` green (Three.js only in the lazy chunk);
       svelte-check unchanged at 27 errors / 10 warnings (none in touched files);
-      Prettier clean on touched lines. Harness 15 cases + settings flow, all
+      Prettier clean on touched lines. Harness 17 cases + settings flow, all
       checks pass: one hero + callouts, no live graph duplicate, split = one
       TopBar, stacked bar transparent → opaque after scrolling, toggle off and
       fresh browser = classic dashboard with no weather request, no geocoding

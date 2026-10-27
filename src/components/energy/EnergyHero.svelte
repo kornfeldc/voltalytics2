@@ -54,9 +54,11 @@
 		topInset?: number;
 		/** Stacked layout: the street dissolves into the page background above the cards. */
 		fadesOut?: boolean;
+		/** Split layout (web): the left edge dissolves into the card column's background. */
+		fadesLeft?: boolean;
 	}
 
-	let { hasWallbox, topInset = 0, fadesOut = false }: Props = $props();
+	let { hasWallbox, topInset = 0, fadesOut = false, fadesLeft = false }: Props = $props();
 
 	let width = $state(0);
 	let height = $state(0);
@@ -438,12 +440,30 @@
 
 	const liveTime = $derived(realtime?.timestamp ? moment(realtime.timestamp).format('HH:mm') : '');
 
-	/** Opaque scene; with `fadesOut` the street dissolves over the last ~110 px. */
+	/**
+	 * Opaque scene; with `fadesOut` the street dissolves over the last ~110 px,
+	 * with `fadesLeft` the left edge over 12 % of the width (max 180 px), eased
+	 * (smoothstep) so no band shows where the fade ends.
+	 */
 	const maskStyle = $derived.by(() => {
-		if (!fadesOut || height <= 0) return '';
-		const start = Math.max(0.5, 1 - Math.min(110, height * 0.24) / height) * 100;
-		const mask = `linear-gradient(to bottom, black 0%, black ${start}%, transparent 100%)`;
-		return `mask-image: ${mask}; -webkit-mask-image: ${mask};`;
+		const masks: string[] = [];
+		if (fadesOut && height > 0) {
+			const start = Math.max(0.5, 1 - Math.min(110, height * 0.24) / height) * 100;
+			masks.push(`linear-gradient(to bottom, black 0%, black ${start}%, transparent 100%)`);
+		}
+		if (fadesLeft && width > 0) {
+			const band = Math.min(180, width * 0.12);
+			const stops = Array.from({ length: 9 }, (_, index) => {
+				const t = index / 8;
+				return `rgba(0, 0, 0, ${(t * t * (3 - 2 * t)).toFixed(3)}) ${(band * t).toFixed(1)}px`;
+			});
+			masks.push(`linear-gradient(to right, ${stops.join(', ')})`);
+		}
+		if (masks.length === 0) return '';
+		const mask = masks.join(', ');
+		const composite =
+			masks.length > 1 ? ' mask-composite: intersect; -webkit-mask-composite: source-in;' : '';
+		return `mask-image: ${mask}; -webkit-mask-image: ${mask};${composite}`;
 	});
 </script>
 

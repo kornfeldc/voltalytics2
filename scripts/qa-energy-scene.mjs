@@ -185,6 +185,7 @@ const tablet = {
 	hasTouch: true
 };
 const desktop = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 };
+const wide = { viewport: { width: 1920, height: 1100 }, deviceScaleFactor: 1 };
 
 const cases = [
 	{ name: 'phone-stacked-day', device: phone, query: 'qaHour=13.5', fullPage: true },
@@ -193,7 +194,11 @@ const cases = [
 	{ name: 'phone-off', device: phone, scene: false, fullPage: true },
 	{ name: 'tablet-stacked', device: tablet, query: 'qaHour=10' },
 	{ name: 'desktop-split-day', device: desktop, query: 'qaHour=13.5' },
+	// card column scrolled: the header card stays pinned, cards pass under it
+	{ name: 'desktop-split-scrolled', device: desktop, query: 'qaHour=13.5', scroll: 300 },
 	{ name: 'desktop-split-night', device: desktop, query: 'state=night&qaHour=21' },
+	// big screen at night, like the user's report of the hard column edge
+	{ name: 'wide-split-night', device: wide, query: 'state=night&qaHour=20' },
 	{ name: 'desktop-split-rain', device: desktop, query: 'qaHour=11&qaWeather=rain&qaTemp=9' },
 	{ name: 'desktop-split-snow', device: desktop, query: 'qaHour=12&qaWeather=snow&qaTemp=-2' },
 	{ name: 'desktop-off', device: desktop, scene: false },

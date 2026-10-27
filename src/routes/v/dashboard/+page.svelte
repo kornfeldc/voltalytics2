@@ -175,12 +175,12 @@
 			<div class="scene_split">
 				<div class="scene_column" style:width="{columnWidth}px">
 					<TopBar embedded />
-					<section class="dashboard_grid dashboard_grid_single px-3 pb-3 pt-3">
+					<section class="dashboard_grid dashboard_grid_single px-3 pb-3 pt-4">
 						{@render cards(userSettings, true)}
 					</section>
 				</div>
 				<div class="scene_side">
-					<EnergyHero hasWallbox={!!userSettings?.currentWallbox} />
+					<EnergyHero hasWallbox={!!userSettings?.currentWallbox} fadesLeft />
 				</div>
 			</div>
 		{:else if layout === 'stacked'}
