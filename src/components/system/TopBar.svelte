@@ -6,12 +6,22 @@
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 
 	import { page } from '$app/stores';
+	import { sceneState } from '$lib/state/sceneState.svelte';
+
+	/** Split dashboard: rendered by the page in its card column (FEATURES.md #3). */
+	let { embedded = false }: { embedded?: boolean } = $props();
+
 	let userImage = $derived($page.data?.session?.user?.image);
 	let userName = $derived($page.data?.session?.user?.name);
+	/** Stacked 3D house view scrolled to the top: float transparent over the sky. */
+	let floating = $derived(!embedded && sceneState.layout === 'stacked' && sceneState.heroUnderBar);
 </script>
 
 <header
-	class="sticky top-0 z-10 bg-background/50 p-1 shadow-lg backdrop-blur dark:shadow-primary/50"
+	bind:clientHeight={sceneState.topBarHeight}
+	class="sticky top-0 z-10 p-1 transition-[background-color,box-shadow,color] duration-300 {floating
+		? 'bg-transparent text-white shadow-none'
+		: 'bg-background/50 shadow-lg backdrop-blur dark:shadow-primary/50'}"
 >
 	<div class="flex items-center px-4">
 		<Zap href="/v/dashboard" class="h-12 w-12 text-amber-400"></Zap>

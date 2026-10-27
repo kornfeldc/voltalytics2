@@ -60,7 +60,7 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 ## In progress
 
-### 3. iPhone Duo / large-screen dashboard with 3D energy scene — ios-only (in-progress, experiment)
+### 3. 3D energy scene dashboard (iPhone Duo / large screens, web) — in-progress (ios + web implemented; Duo portrait check + production run pending)
 
 **Goal:** on the iPhone Duo inner display (and other regular-width screens) the
 dashboard becomes a two-pane layout like the Tesla app's tablet/Duo redesign
@@ -74,23 +74,34 @@ book posture splits 50/50 at the crease, laptop posture stacks scene above
 cards; fully unfolded keeps the regular split. Rev 2: the house is modelled on the user's own (drone photo:
 terracotta roof, black PV array + skylight, carport with second PV block), the
 car is a black Tesla Model Y, and the scene reflects the live weather at the
-user's address (fallback Eisenstadt) with temperature + conditions shown.
+user's address (fallback Eisenstadt) with temperature + conditions shown. Rev 5:
+open double carport — Model Y (nose in, left, at the go-e) + BYD Atto 2 (nose
+out, right), PV strip front to back. Rev 6 (2026-10-27): the same scene, layouts
+and weather on the web — **optional** there, toggled per browser. Rev 7: off by
+default on the web (user).
 
-**Scope:** `ios-only` — the user scoped this to the iOS app ("regarding the ios
-version"); it is a native large-screen/foldable presentation, the web dashboard
-is unaffected.
+**Scope:** both platforms. Started iOS-only ("regarding the ios version"); the
+user then asked for the exact same visualization on the web, optional and not
+persisted ("just in cache").
 
 **Contract:** no DB columns, API shapes or engine semantics change. The scene
 visualizes data the dashboard already loads (inverter realtime, go-e charging
 status, current price) plus live weather:
 
-- Weather: Open-Meteo `GET /v1/forecast?latitude&longitude&current=temperature_2m,
-  weather_code,cloud_cover,precipitation,snowfall,snow_depth,wind_speed_10m,is_day`
+- Weather: Open-Meteo `GET /v1/forecast` with `latitude`, `longitude` and
+  `current=temperature_2m,weather_code,cloud_cover,precipitation,snowfall,snow_depth,wind_speed_10m,is_day`
   (free, no key, CC BY 4.0 — attribution in Settings), cached 10 min. Only
   coordinates rounded to 2 decimals (~1 km) leave the device.
-- Location: Settings address geocoded on-device by Apple MapKit
-  (`MKGeocodingRequest`), result cached; empty or unresolvable → Eisenstadt
+- Location: Settings address geocoded and cached on the client — iOS: Apple
+  MapKit (`MKGeocodingRequest`); web: OpenStreetMap Nominatim (no MapKit in the
+  browser; the address goes to OSM). Empty or unresolvable → Eisenstadt
   (47.8457, 16.5232). The same coordinates drive the scene's sun position.
+- Scene semantics shared by both ports: `Lot` layout (meters, front façade +z),
+  routes into the façade gateway, pulse speed `1.3 + 1.2·log2(1+kW)` m/s and
+  spacing `max(0.55, 2.4 − 0.3·kW)` m, colors per source (solar amber, battery
+  cyan, export teal, import rose, car = its charge source), roof/carport PV
+  share 80/20, Vienna-independent sun from the weather place, camera framing
+  (~29 m span, horizon a quarter down the safe area, lens shift below bars).
 
 **iOS:**
 
@@ -107,12 +118,57 @@ status, current price) plus live weather:
   layout decisions use size classes, not orientation (Apple's iPhone Duo
   guidance — the inner display ignores supported orientations).
 
-**Settings sync:** deliberate deviation from the rule of three — the weather
-address is an **on-device** setting (`UserDefaults`, key `weatherAddress`), not
-a Supabase `user` column: it only feeds this iOS-only scene, and a column would
-need a production migration plus a web settings field nobody uses. Revisit
-(column `weatherAddress text null` + `IUserSettings`/Settings.svelte) if it
-should sync across devices.
+**Web:**
+
+- Files: `src/lib/energyScene/*` (Three.js port of the RealityKit scene:
+  lot, model, palette, textures, geometry, scene, property, cars, sky, weather),
+  `src/components/energy/EnergyHero.svelte` (canvases, callouts, header chips),
+  `src/lib/state/sceneState.svelte.ts` (toggle + address in localStorage, layout
+  flags, go-e status published by `ChargingOverview.svelte`), dashboard page +
+  `/v/+layout.svelte` + `TopBar.svelte` (stacked/split layouts),
+  `Settings.svelte` (switch + address), `DashboardLive.svelte` (chart only while
+  the scene is on).
+- Layouts: stacked below 900 px viewport width — scene full width on top,
+  height `min(max(56 % of the viewport, 320), 560)` + TopBar, the TopBar floats
+  transparent over the sky until the page scrolls past the scene, the street
+  fades into the page background, cards below (existing grid). Split from
+  900 px — card column `min(max(40 % width, 340), 460)` px with its own TopBar
+  (the layout hides its bar and lifts the 800 px limit), scene sticky at full
+  height on the right. No fold postures on the web.
+- Notes: Three.js is loaded lazily (dynamic import, own ~565 kB chunk) only
+  when the scene mounts; glow = additive halo sprites instead of a bloom pass
+  (transparent canvas); the 2D sky/weather overlays are canvas layers like the
+  SwiftUI ones; the render loop is capped at ~60 fps and pauses off-screen.
+  With the toggle off the dashboard is unchanged (no scene code or weather
+  requests). Dev-only QA params: `?qaHour=21`, `?qaWeather=rain&qaTemp=9`.
+- Deliberate web deviations (look-alike, not value-alike — don't "fix"):
+  - Horizon haze: Three.js fog in the sky's horizon colour (120–1200 m, apron
+    r 2000 m vs iOS 600 m) plus the haze band drawn _behind_ the scene. iOS
+    draws the band over the scene, which crossed the roof on wide stacked heroes.
+  - Wide stacked heroes (500–899 px) keep the header on top: a callout whose
+    chip would rise into a header pill hangs below instead.
+  - Light calibrated against iPhone 17 simulator screenshots (day, night,
+    snow; RealityKit lux/exposure ≠ Three.js units): sun
+    `(0.85 + 4.6·day)·(1 − 0.78·clouds)`, sky light
+    `(0.5 + 0.9·day)·(1 − 0.25·clouds)`, asphalt albedo 0.35 (iOS 0.17 +
+    grazing sky reflection), window lights `1.5 + 2·usage`, lamps 7. The day light probe greys with cloud
+    cover (iOS blends toward its night probe).
+  - Pulses keep their flow colour; iOS bloom whitens their cores.
+- QA: `node scripts/qa-energy-scene.mjs [outDir]` mounts `/v` layout +
+  dashboard (`scripts/qa/SceneHarness.svelte`) with mocked API + Open-Meteo
+  (fixtures = iOS `MockData.swift`) and screenshots 15 cases: phone/tablet
+  stacked, desktop split, night, rain, snow, toggle off, fresh browser (default
+  off), settings, and three 402×874 parity cases against the iOS simulator. A
+  settings flow types an address (one debounced Nominatim call, chip follows)
+  and switches the view off; a drawer check swipes the Settings sheet on a phone
+  (it must fit the screen and scroll instead of closing).
+
+**Settings sync:** deliberate deviation from the rule of three — the scene
+settings are **per device/browser**, never Supabase columns: iOS `UserDefaults`
+(`weatherAddress`; the scene is always on), web `localStorage` (`scene enabled`
+toggle, default off, + weather address — "not persisted, just in cache"; cleared
+with the browser cache). Revisit (columns + `IUserSettings`/Settings.svelte/
+`UserSettings.swift`) if it should sync across devices.
 
 **Parity checklist:**
 
@@ -121,7 +177,18 @@ should sync across devices.
 - [ ] inner display in portrait (stacked, two card columns) — needs a rotate
 - [x] stacked layout with the scene on an iPhone 17 simulator (light mode)
 - [x] deviations documented (entry + iOS README)
-- [ ] ledger status updated (→ done after the inner-display check)
+- [x] web: `pnpm run build` green (Three.js only in the lazy chunk);
+      svelte-check unchanged at 27 errors / 10 warnings (none in touched files);
+      Prettier clean on touched lines. Harness 15 cases + settings flow, all
+      checks pass: one hero + callouts, no live graph duplicate, split = one
+      TopBar, stacked bar transparent → opaque after scrolling, toggle off and
+      fresh browser = classic dashboard with no weather request, no geocoding
+      without an address, address → one geocoding call, switch off → classic
+      dashboard, no page errors.
+- [x] parity: iPhone 17 simulator (`-voltalytics-preview`, `-voltalytics-mock-data`,
+      `-voltalytics-qa-hour …`) vs web 402×874 — day, night, snow side by side
+- [ ] web against the live app (needs a Google login; the harness mocks the API)
+- [ ] ledger status updated (→ done after the inner-display check + a live web run)
 
 ### 2. Calculated force-charge plan stops on its own + price display fixes — in-progress (implemented web + ios, migration done; production check + iOS device install pending)
 

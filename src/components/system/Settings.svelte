@@ -20,6 +20,7 @@
 	import type { ICalculationSuggestion } from '$lib/classes/charging';
 	import TariffEditor from './TariffEditor.svelte';
 	import moment from 'moment';
+	import { sceneState } from '$lib/state/sceneState.svelte';
 
 	let { userSettings, saved }: { userSettings: IUserSettings; saved: () => void } = $props();
 	let formData = $state(userSettings);
@@ -299,6 +300,25 @@
 							onchange={(json) => (formData.fixedPriceData = json)}
 						/>
 					</div>
+				{/if}
+
+				{#if formData.currentInverter}
+					<!-- per browser, applied right away; not part of SAVE (FEATURES.md #3) -->
+					<div class="col-span-4 my-3"></div>
+					<Label class="col-span-3">3D house view</Label>
+					<Switch class="justify-self-end" bind:checked={sceneState.enabled}></Switch>
+					{#if sceneState.enabled}
+						<Label>Weather</Label>
+						<Input
+							class="col-span-3"
+							placeholder="Address (default: Eisenstadt)"
+							bind:value={sceneState.weatherAddress}
+						/>
+					{/if}
+					<p class="text-inactive col-span-4 text-xs">
+						Applies right away and is kept in this browser only. The address is looked up with
+						OpenStreetMap Nominatim, weather by Open-Meteo.
+					</p>
 				{/if}
 
 				<Drawer.Close class="col-span-4 mt-4">

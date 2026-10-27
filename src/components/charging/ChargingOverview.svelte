@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import moment from 'moment';
 	import NoData from '../system/NoData.svelte';
+	import { liveCharging } from '$lib/state/sceneState.svelte';
 
 	let chargingInfo = $state({} as IChargingInfo);
 	let chaningChargingPower = $state(false);
@@ -28,6 +29,9 @@
 		if ((chargingInfo?.kw ?? 0) > 0) status = chargingInfo.suggestion.currentChargingReason as any;
 		else if (chargingInfo?.carStatus === 'unknown') status = 'no_car';
 		else status = 'not_charging';
+		// the 3D house view colours the car's cable by this
+		liveCharging.kw = chargingInfo?.kw ?? 0;
+		liveCharging.status = status;
 
 		if (!boostDefaultsSet && chargingInfo.userSettings) {
 			boostKw =

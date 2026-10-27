@@ -8,6 +8,7 @@
 	import Settings from '../../components/system/Settings.svelte';
 	import { onMount } from 'svelte';
 	import { drawerState } from '$lib/state/drawerState.svelte.js';
+	import { sceneState } from '$lib/state/sceneState.svelte';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -60,8 +61,12 @@
 	{#if userSettings}
 		<Drawer.Root bind:open={drawerState.isOpened}>
 			<div class="flex min-h-screen flex-col">
-				<TopBar></TopBar>
-				<main class="mx-auto w-full max-w-[800px]">
+				<!-- 3D house view: the split dashboard renders the bar in its card column
+				and both scene layouts span the full width (FEATURES.md #3) -->
+				{#if sceneState.layout !== 'split'}
+					<TopBar></TopBar>
+				{/if}
+				<main class={sceneState.layout === 'off' ? 'mx-auto w-full max-w-[800px]' : 'w-full !p-0'}>
 					{@render children?.()}
 				</main>
 			</div>
