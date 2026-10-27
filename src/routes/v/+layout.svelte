@@ -65,8 +65,12 @@
 					{@render children?.()}
 				</main>
 			</div>
-			<Drawer.Content class="mx-auto max-w-[800px]">
-				<div class="safe_margin_bottom_reduced">
+			<!-- capped at the screen with its own scroll area: vaul drags the sheet
+			down only when that area is scrolled to the top, otherwise it scrolls -->
+			<Drawer.Content class="mx-auto max-h-[92dvh] max-w-[800px]">
+				<div
+					class="safe_margin_bottom_reduced min-h-0 flex-1 scroll-pt-6 overflow-y-auto overscroll-contain"
+				>
 					<Settings {userSettings} {saved}></Settings>
 				</div>
 			</Drawer.Content>
