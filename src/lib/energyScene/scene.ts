@@ -19,6 +19,8 @@ import type { Vec3 } from './lot';
 import { cloudiness, hasSnowCover, isRaining, type CurrentWeather } from './weather';
 import { PolyPath, rotation, v3 } from './geometry';
 import { carColor, palette } from './palette';
+import { buildDecorations, type Decorations } from './decorations';
+import type { Season } from './season';
 import { skyPalette } from './sky';
 import * as textures from './textures';
 import {
@@ -100,6 +102,11 @@ export class EnergyScene {
 	private appliedWeather?: CurrentWeather;
 	private appliedSurface: SurfaceState = 'dry';
 	private paused = false;
+	/** Holiday decorations (FEATURES.md #4) + the clock and night level they animate with. */
+	private decorations?: Decorations;
+	private appliedSeason: Season | null = null;
+	private clock = 0;
+	private night = 0;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.renderer = new THREE.WebGLRenderer({
@@ -210,11 +217,27 @@ export class EnergyScene {
 		}
 	}
 
-	/** Per-frame pulse animation. */
+	/** Per-frame pulse + decoration animation. */
 	tick(dt: number) {
 		if (this.paused) return;
 		const step = Math.min(dt, 0.1);
 		for (const track of this.tracks.values()) track.tick(step);
+		this.clock += step;
+		this.decorations?.tick(this.clock, step);
+	}
+
+	/** Builds (or removes) the holiday decorations when the season changes. */
+	setSeason(season: Season | null) {
+		if (season === this.appliedSeason) return;
+		this.appliedSeason = season;
+		this.decorations?.dispose();
+		this.decorations = undefined;
+		if (season) {
+			this.decorations = buildDecorations(this, season);
+			this.root.add(this.decorations.group);
+			this.decorations.setNight(this.night);
+		}
+		this.renderer.shadowMap.needsUpdate = true;
 	}
 
 	render() {
@@ -295,6 +318,8 @@ export class EnergyScene {
 		for (const lamp of this.nightLamps) lamp.intensity = night * 7;
 		for (const bulb of this.nightBulbs) bulb.visible = night > 0.3;
 		for (const light of this.carLights) light.visible = night > 0.4;
+		this.night = night;
+		this.decorations?.setNight(night);
 	}
 
 	private applySurfaces(next: SurfaceState) {

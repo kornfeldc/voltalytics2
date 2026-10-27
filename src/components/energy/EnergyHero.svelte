@@ -34,7 +34,15 @@
 		project,
 		type CarSource
 	} from '$lib/energyScene/model';
-	import { drawHaze, drawSky, drawWeatherEffects, hasAnimatedEffects } from '$lib/energyScene/sky';
+	import {
+		drawHaze,
+		drawSeasonSky,
+		drawSky,
+		drawWeatherEffects,
+		hasAnimatedEffects,
+		seasonSkyAnimates
+	} from '$lib/energyScene/sky';
+	import { activeSeason, seasonEmoji } from '$lib/energyScene/season';
 	import {
 		condition,
 		conditionLabel,
@@ -90,6 +98,13 @@
 		)
 	);
 	const daylight = $derived(daylightAt(sceneDate(now), place.latitude, place.longitude));
+	/** Dev-only `?qaSkyTime=5.6` freezes the holiday sky at that moment (screenshots). */
+	const qaSkyTime =
+		import.meta.env.DEV && typeof location !== 'undefined'
+			? Number(new URLSearchParams(location.search).get('qaSkyTime') ?? NaN)
+			: NaN;
+	/** Holiday mode (FEATURES.md #4), re-evaluated with the scene clock. */
+	const season = $derived(activeSeason(sceneDate(now)));
 	const flows = $derived(
 		flowState(realtime, { kw: liveCharging.kw, status: liveCharging.status }, hasWallbox)
 	);
@@ -164,14 +179,16 @@
 
 	function drawEffects(time: number) {
 		const ctx = sizeCanvas(fxCanvas);
-		if (ctx) drawWeatherEffects(ctx, rig, daylight, weather, time);
+		if (!ctx) return;
+		drawWeatherEffects(ctx, rig, daylight, weather, time);
+		drawSeasonSky(ctx, rig, daylight, season, Number.isFinite(qaSkyTime) ? qaSkyTime : time);
 	}
 
 	$effect(() => {
 		if (width <= 0 || height <= 0) return;
 		const ctx = sizeCanvas(skyCanvas);
 		if (ctx) {
-			drawSky(ctx, rig, daylight, weather);
+			drawSky(ctx, rig, daylight, weather, season);
 			// behind the scene (iOS draws it over): the 3D fog fades the far ground
 			drawHaze(ctx, rig, daylight, weather);
 		}
@@ -191,6 +208,7 @@
 		if (!sceneReady || !scene || width <= 0 || height <= 0) return;
 		resizeScene(scene);
 		scene.apply(flows, daylight, weather, rig);
+		scene.setSeason(season);
 	});
 
 	// MARK: lifecycle
@@ -216,7 +234,8 @@
 				scene.tick(dt);
 				scene.render();
 			}
-			if (hasAnimatedEffects(weather)) drawEffects(time / 1000);
+			if (hasAnimatedEffects(weather) || seasonSkyAnimates(season, daylight))
+				drawEffects(time / 1000);
 		};
 		frame = requestAnimationFrame(loop);
 
@@ -229,6 +248,7 @@
 				created.build();
 				resizeScene(created);
 				created.apply(flows, daylight, weather, rig);
+				created.setSeason(season);
 				await created.renderer.compileAsync(created.scene, created.camera).catch(() => undefined);
 				if (disposed) {
 					created.dispose();
@@ -473,6 +493,7 @@
 	bind:clientWidth={width}
 	bind:clientHeight={height}
 	data-scene-ready={sceneVisible}
+	data-season={season ?? 'none'}
 >
 	<div class="layers" style={maskStyle}>
 		<canvas class="layer" bind:this={skyCanvas}></canvas>
@@ -527,6 +548,7 @@
 			<span class="live-dot" class:on={!!realtime}></span>
 			<span class="live-label">Live</span>
 			{#if liveTime}<span class="live-time">{liveTime}</span>{/if}
+			{#if season}<span class="live-season">{seasonEmoji[season]}</span>{/if}
 		</div>
 		{#if weather}
 			{@const c = condition(weather)}
@@ -690,6 +712,11 @@
 
 	.live-label {
 		font-weight: 600;
+	}
+
+	.live-season {
+		font-size: 15px;
+		line-height: 1;
 	}
 
 	.live-time {

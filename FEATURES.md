@@ -60,6 +60,79 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 ## In progress
 
+### 4. Holiday modes for the 3D scene (Halloween, Christmas, Easter) — in-progress (web + ios implemented; production check pending)
+
+**Goal:** around Halloween, Christmas and Easter the 3D house scene decorates
+itself automatically — pumpkins and bats, Christmas lights and Santa, Easter
+bunny and eggs — with animations and night glow; no setting, no data change.
+
+**Scope:** both platforms (user, 2026-10-27: "now affecting both ios and web …
+be creative"). Wherever the scene shows (iOS always, web when the 3D view is on).
+
+**Contract** (implemented identically on both platforms):
+
+- Activation by **local calendar date**, inclusive — from a week before the
+  holiday to the day after: Halloween **Oct 24 – Nov 1**; Christmas
+  **Dec 17 – Dec 27**; Easter **Palm Sunday – Easter Monday** (Easter Sunday by
+  the Gregorian anonymous computus, e.g. 2027-03-28). Re-evaluated with the
+  scene clock (every minute), so a season starts/ends at local midnight.
+- QA overrides (dev/DEBUG only): web `?qaSeason=halloween|christmas|easter|none`,
+  iOS `-voltalytics-qa-season <name>`.
+- No DB columns, API or engine changes; no setting (automatic). The decorations
+  live in their own scene group, built when the season changes, absent outside
+  the windows. Animated pieces cast no shadows (the shadow map is static).
+- Live pill gets the season's emoji: 🎃 / 🎄 / 🐣.
+- Decorations (same `Lot` coordinates, sizes and colours on both platforms):
+  - **Halloween:** lobed jack-o'-lanterns (entrance step ×2, gate post + first
+    fence pillars ×3, a big one on the west lawn) with faces toward the camera
+    that glow and flicker after dusk (plus one flickering light at the door);
+    5 bats circling the chimney; 3 crooked tombstones on the lawn east of the
+    driveway with a ghost floating above them; orange/purple string lights
+    along the front eave and the carport fascia. Sky: big orange harvest moon at
+    night, a witch on her broom crossing in front of it every 30 s.
+  - **Christmas:** twinkling multicolour lights along the front eave + carport
+    fascia, icicle lights under the fascia; decorated Christmas tree by the
+    entrance path (ornaments, twinkling lights, glowing star, presents); snowman
+    with top hat, carrot nose and scarf east of the driveway; Santa sitting on the
+    ridge waving, his sack beside him; wreath with a red bow on the front door.
+    Sky: Santa's sleigh with reindeer crossing every 26 s (Rudolph's nose glows
+    at night).
+  - **Easter:** pastel egg garland along the front eave + carport fascia;
+    storybook-size Easter bunny hopping a loop across the front lawn and path
+    (hop runs, pauses); big coloured eggs in the lawn; Easter egg tree (eggs
+    hanging in the front fruit tree) and blossoms on both fruit trees; tulips
+    along the façade and inside the fence; big Easter basket on the front lawn;
+    3 butterflies fluttering around the beds and the egg tree.
+
+**Web:** `src/lib/energyScene/{season,decorations}.ts` (+ hooks in `scene.ts`,
+sky overlays in `sky.ts`), `EnergyHero.svelte` (season from the scene clock,
+emoji, `data-season`); glow = halo sprites; dev-only `?qaSkyTime=5.6` freezes
+the witch/sleigh for screenshots. QA: 7 holiday cases + 3 iPhone 17 parity
+cases in `scripts/qa-energy-scene.mjs`.
+
+**iOS:** `Views/Dashboard/EnergyHero/EnergySceneSeason.swift` (dates),
+`EnergyScene+Decorations.swift` (builders + animation), hooks in
+`EnergyScene.swift`, `SeasonSky` + harvest moon in `EnergyHeroView.swift`.
+Native treatment: glow = bloom on the lit parts; emissive levels = web × 2
+(RealityKit exposure; night clears the bloom threshold, day doesn't);
+glow materials are re-assigned at most 20×/s (RealityKit materials are
+values). DEBUG `-voltalytics-qa-sky-time 5.6` freezes the sky.
+
+**Settings sync:** none (automatic).
+
+**Parity checklist:**
+
+- [x] web: `pnpm run build` green; svelte-check unchanged (27 errors / 10
+      warnings, none in touched files); Prettier clean on touched lines;
+      harness 102/102 checks incl. Halloween/Christmas/Easter day + night,
+      phone Halloween night, `data-season` per case
+- [x] iOS: iPhone 17 simulator build green; screenshots Halloween night,
+      Christmas night, Easter day side by side with the web parity cases
+- [x] activation dates identical: computus vectors (2008, 2019, 2024–2028,
+      2038, 2285) pass in JS and Swift; window rule shared
+- [ ] production check (today, Oct 24 – Nov 1, Halloween is live)
+- [ ] ledger status → done after the production check
+
 ### 3. 3D energy scene dashboard (iPhone Duo / large screens, web) — in-progress (ios + web implemented; Duo portrait check + production run pending)
 
 **Goal:** on the iPhone Duo inner display (and other regular-width screens) the
@@ -159,7 +232,8 @@ status, current price) plus live weather:
   - Pulses keep their flow colour; iOS bloom whitens their cores.
 - QA: `node scripts/qa-energy-scene.mjs [outDir]` mounts `/v` layout +
   dashboard (`scripts/qa/SceneHarness.svelte`) with mocked API + Open-Meteo
-  (fixtures = iOS `MockData.swift`) and screenshots 17 cases: phone/tablet
+  (fixtures = iOS `MockData.swift`) and screenshots 17 scene cases (+ #4's holiday
+  cases): phone/tablet
   stacked, desktop split (also scrolled), 1920 px split at night, night, rain,
   snow, toggle off,
   fresh browser (default off), settings, and three 402×874 parity cases against
@@ -184,7 +258,7 @@ with the browser cache). Revisit (columns + `IUserSettings`/Settings.svelte/
 - [x] deviations documented (entry + iOS README)
 - [x] web: `pnpm run build` green (Three.js only in the lazy chunk);
       svelte-check unchanged at 27 errors / 10 warnings (none in touched files);
-      Prettier clean on touched lines. Harness 17 cases + settings flow, all
+      Prettier clean on touched lines. Harness 17 scene cases + settings flow, all
       checks pass: one hero + callouts, no live graph duplicate, split = one
       TopBar, stacked bar transparent → opaque after scrolling, toggle off and
       fresh browser = classic dashboard with no weather request, no geocoding

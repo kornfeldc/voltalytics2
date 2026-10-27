@@ -205,11 +205,68 @@ const cases = [
 	// fresh browser, nothing in localStorage: the 3D view is off by default
 	{ name: 'desktop-default', device: desktop, scene: false, fresh: true },
 	{ name: 'desktop-settings', device: desktop, query: 'qaHour=13.5', settings: true },
+	// holiday modes (FEATURES.md #4); qaSkyTime freezes the witch / sleigh mid-flight
+	{
+		name: 'halloween-night',
+		device: desktop,
+		season: 'halloween',
+		query: 'qaSeason=halloween&state=night&qaHour=20.5&qaSkyTime=5.6'
+	},
+	{
+		name: 'halloween-day',
+		device: desktop,
+		season: 'halloween',
+		query: 'qaSeason=halloween&qaHour=14'
+	},
+	{
+		name: 'christmas-night',
+		device: desktop,
+		season: 'christmas',
+		query: 'qaSeason=christmas&state=night&qaHour=18&qaSkyTime=5'
+	},
+	{
+		name: 'christmas-day',
+		device: desktop,
+		season: 'christmas',
+		query: 'qaSeason=christmas&qaHour=12&qaSkyTime=4'
+	},
+	{ name: 'easter-day', device: desktop, season: 'easter', query: 'qaSeason=easter&qaHour=11' },
+	{
+		name: 'easter-night',
+		device: desktop,
+		season: 'easter',
+		query: 'qaSeason=easter&state=night&qaHour=21'
+	},
+	{
+		name: 'phone-halloween-night',
+		device: phone,
+		season: 'halloween',
+		query: 'qaSeason=halloween&state=night&qaHour=20.5&qaSkyTime=5.6'
+	},
 	// side by side with the iOS simulator (iPhone 17, -voltalytics-qa-hour 13.5
 	// -voltalytics-qa-weather partly -voltalytics-qa-temp 14)
 	{ name: 'iphone17-parity', device: iphone17, query: 'qaHour=13.5&qaWeather=partly&qaTemp=14' },
 	{ name: 'iphone17-parity-night', device: iphone17, query: 'qaHour=21&qaWeather=clear&qaTemp=8' },
-	{ name: 'iphone17-parity-snow', device: iphone17, query: 'qaHour=12&qaWeather=snow&qaTemp=-2' }
+	{ name: 'iphone17-parity-snow', device: iphone17, query: 'qaHour=12&qaWeather=snow&qaTemp=-2' },
+	// holiday parity (iOS: -voltalytics-qa-season … -voltalytics-qa-hour … -voltalytics-qa-sky-time …)
+	{
+		name: 'iphone17-halloween',
+		device: iphone17,
+		season: 'halloween',
+		query: 'qaSeason=halloween&qaHour=20.5&qaWeather=clear&qaTemp=8&qaSkyTime=5.6'
+	},
+	{
+		name: 'iphone17-christmas',
+		device: iphone17,
+		season: 'christmas',
+		query: 'qaSeason=christmas&qaHour=18&qaWeather=clear&qaTemp=8&qaSkyTime=5'
+	},
+	{
+		name: 'iphone17-easter',
+		device: iphone17,
+		season: 'easter',
+		query: 'qaSeason=easter&qaHour=11&qaWeather=partly&qaTemp=14'
+	}
 ];
 const only = process.env.QA_ONLY?.split(',');
 
@@ -395,6 +452,7 @@ try {
 			heroes: document.querySelectorAll('.hero').length,
 			callouts: [...document.querySelectorAll('.callout')].map((c) => c.textContent?.trim()),
 			headers: document.querySelectorAll('header').length,
+			season: document.querySelector('.hero')?.getAttribute('data-season') ?? null,
 			// battery labels exist only in InverterLiveGraph (the classic live card)
 			liveGraph: /(Dis)?[Cc]harging Battery/.test(document.body.innerText),
 			topBarBackground: getComputedStyle(document.querySelector('header')).backgroundColor,
@@ -428,6 +486,11 @@ try {
 				assert.equal(facts.liveGraph, true);
 				assert.ok(!facts.requests.includes('open-meteo'), 'weather fetched without the scene');
 			});
+		}
+		if (qa.season) {
+			check(`${qa.name}: ${qa.season} decorations active`, () =>
+				assert.equal(facts.season, qa.season)
+			);
 		}
 		if (qa.name.startsWith('desktop-split')) {
 			check(`${qa.name}: split shows a single TopBar (in the card column)`, () =>

@@ -4,6 +4,7 @@
 // (see CameraRig); callers translate by the lens-shift offset. No three.js.
 import { dayAmount, horizonY, warmth, type CameraRig, type Daylight } from './model';
 import { cloudiness, condition, isRaining, isSnowing, type CurrentWeather } from './weather';
+import type { Season } from './season';
 
 type RGB = [number, number, number];
 
@@ -106,12 +107,22 @@ export function skyPalette(daylight: Daylight, weather: CurrentWeather | undefin
 	};
 }
 
-/** Gradient sky, stars, sun or moon (hidden by clouds), overcast deck, fair-weather cumulus. */
+/** Where the moon sits (upper left), shared by the sky and the Halloween witch. */
+const moonPosition = (rig: CameraRig) => ({
+	x: rig.viewSize.width * 0.2,
+	y: Math.max(rig.safeRect.y + 30, horizonY(rig) * 0.3)
+});
+
+/**
+ * Gradient sky, stars, sun or moon (hidden by clouds), overcast deck,
+ * fair-weather cumulus. Halloween (FEATURES.md #4): big orange harvest moon.
+ */
 export function drawSky(
 	ctx: CanvasRenderingContext2D,
 	rig: CameraRig,
 	daylight: Daylight,
-	weather: CurrentWeather | undefined
+	weather: CurrentWeather | undefined,
+	season: Season | null = null
 ) {
 	const { width, height } = rig.viewSize;
 	const horizon = horizonY(rig);
@@ -151,17 +162,12 @@ export function drawSky(
 			const top = topInset + 34;
 			const y = horizon - Math.max(0, horizon - top) * lift - 6;
 			sun(ctx, x, y, 15, palette.sunCore, palette.sunGlow, palette.sunGlowAlpha, discOpacity);
+		} else if (season === 'halloween') {
+			const moon = moonPosition(rig);
+			sun(ctx, moon.x, moon.y, 17, [1, 0.8, 0.5], [1, 0.55, 0.15], 0.5, discOpacity);
 		} else {
-			sun(
-				ctx,
-				width * 0.2,
-				Math.max(topInset + 30, horizon * 0.3),
-				10,
-				[0.93, 0.93, 0.93],
-				[0.6, 0.7, 1],
-				0.35,
-				discOpacity
-			);
+			const moon = moonPosition(rig);
+			sun(ctx, moon.x, moon.y, 10, [0.93, 0.93, 0.93], [0.6, 0.7, 1], 0.35, discOpacity);
 		}
 	}
 
@@ -361,4 +367,224 @@ export function drawWeatherEffects(
 			ctx.fillRect(0, 0, width, height);
 		}
 	}
+}
+
+// MARK: - holiday sky (FEATURES.md #4)
+
+/** True while the season draws moving silhouettes (the effects layer must redraw per frame). */
+export const seasonSkyAnimates = (season: Season | null, daylight: Daylight) =>
+	season === 'christmas' || (season === 'halloween' && dayAmount(daylight) < 0.7);
+
+/** Witch crossing the harvest moon (Halloween nights) or Santa's sleigh (Christmas). */
+export function drawSeasonSky(
+	ctx: CanvasRenderingContext2D,
+	rig: CameraRig,
+	daylight: Daylight,
+	season: Season | null,
+	time: number
+) {
+	const night = 1 - dayAmount(daylight);
+	if (season === 'halloween' && night > 0.3) drawWitchFlight(ctx, rig, time, night);
+	if (season === 'christmas') drawSleighFlight(ctx, rig, time, night);
+}
+
+/** Every 30 s a 7 s flight right → left, straight across the moon. */
+function drawWitchFlight(
+	ctx: CanvasRenderingContext2D,
+	rig: CameraRig,
+	time: number,
+	night: number
+) {
+	const phase = time % 30;
+	if (phase > 7) return;
+	const p = phase / 7;
+	const { width } = rig.viewSize;
+	const moon = moonPosition(rig);
+	const atMoon = (width + 70 - moon.x) / (width + 140);
+	const x = width + 70 - (width + 140) * p;
+	const y = moon.y + 50 * (p - atMoon) + 5 * Math.sin(p * 16);
+	const scale = Math.min(1.3, Math.max(0.7, width / 900));
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.scale(scale, scale);
+	ctx.fillStyle = ctx.strokeStyle = `rgba(12, 6, 18, ${0.92 * night})`;
+	ctx.lineCap = 'round';
+	ctx.lineJoin = 'round';
+	ctx.lineWidth = 2.2;
+	ctx.beginPath(); // broom stick, flying left
+	ctx.moveTo(-26, 4);
+	ctx.lineTo(22, 7);
+	ctx.stroke();
+	ctx.beginPath(); // bristles
+	ctx.moveTo(20, 5);
+	ctx.lineTo(36, 0);
+	ctx.lineTo(38, 8);
+	ctx.lineTo(34, 15);
+	ctx.lineTo(20, 9);
+	ctx.closePath();
+	ctx.fill();
+	ctx.beginPath(); // body
+	ctx.moveTo(-4, 5);
+	ctx.quadraticCurveTo(-2, -10, 4, -14);
+	ctx.lineTo(12, -12);
+	ctx.quadraticCurveTo(16, -2, 18, 6);
+	ctx.closePath();
+	ctx.fill();
+	const wave = 3 * Math.sin(time * 9);
+	ctx.beginPath(); // cape
+	ctx.moveTo(10, -12);
+	ctx.quadraticCurveTo(22, -10, 27, -2 + wave);
+	ctx.lineTo(16, 2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.beginPath(); // head
+	ctx.arc(2, -17, 3.6, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.beginPath(); // hat brim + crooked cone
+	ctx.ellipse(2, -20, 7, 1.6, -0.15, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.beginPath();
+	ctx.moveTo(-2, -20.5);
+	ctx.lineTo(10, -33);
+	ctx.lineTo(6, -20);
+	ctx.closePath();
+	ctx.fill();
+	ctx.lineWidth = 1.6;
+	ctx.beginPath(); // arm on the broom, legs
+	ctx.moveTo(0, -8);
+	ctx.lineTo(-8, 4);
+	ctx.moveTo(2, 4);
+	ctx.lineTo(-2, 11);
+	ctx.lineTo(-6, 11);
+	ctx.stroke();
+	ctx.restore();
+}
+
+/** Every 26 s a 10 s arc left → right; Rudolph's nose glows and a sparkle trail follows at night. */
+function drawSleighFlight(
+	ctx: CanvasRenderingContext2D,
+	rig: CameraRig,
+	time: number,
+	night: number
+) {
+	const phase = time % 26;
+	if (phase > 10) return;
+	const p = phase / 10;
+	const { width } = rig.viewSize;
+	const top = rig.safeRect.y;
+	const sky = Math.max(1, horizonY(rig) - top);
+	const scale = Math.min(1.2, Math.max(0.65, width / 1000));
+	const x = -220 * scale + (width + 300 * scale) * p;
+	const y = top + sky * (0.42 - 0.16 * Math.sin(Math.PI * p));
+	const ink = night > 0.5 ? `rgba(16, 10, 22, 0.92)` : `rgba(70, 30, 25, 0.85)`;
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.scale(scale, scale);
+	if (night > 0.3) {
+		for (let k = 0; k < 10; k++) {
+			const alpha = (1 - k / 10) * 0.8 * night;
+			ctx.fillStyle = `rgba(255, 215, 120, ${alpha})`;
+			ctx.beginPath();
+			ctx.arc(-26 - k * 14, 6 + 3 * Math.sin(time * 4 + k), 1.6 - k * 0.1, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
+	ctx.fillStyle = ctx.strokeStyle = ink;
+	ctx.lineCap = 'round';
+	ctx.lineJoin = 'round';
+	ctx.lineWidth = 1;
+	ctx.beginPath(); // reins
+	ctx.moveTo(18, -6);
+	for (let i = 0; i < 4; i++) ctx.lineTo(48 + i * 34, -8 - i * 3);
+	ctx.stroke();
+	for (let i = 0; i < 4; i++) reindeer(ctx, 50 + i * 34, -6 - i * 3, time * 10 + i * 1.3);
+	sleigh(ctx);
+	const nose = { x: 50 + 3 * 34 + 18.5, y: -6 - 9 - 12 };
+	if (night > 0.3) {
+		const glow = ctx.createRadialGradient(nose.x, nose.y, 0, nose.x, nose.y, 9);
+		glow.addColorStop(0, `rgba(255, 60, 50, ${0.9 * night})`);
+		glow.addColorStop(1, 'rgba(255, 60, 50, 0)');
+		ctx.fillStyle = glow;
+		ctx.beginPath();
+		ctx.arc(nose.x, nose.y, 9, 0, Math.PI * 2);
+		ctx.fill();
+	}
+	ctx.fillStyle = 'rgba(235, 40, 35, 0.95)';
+	ctx.beginPath();
+	ctx.arc(nose.x, nose.y, 1.8, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}
+
+function reindeer(ctx: CanvasRenderingContext2D, x: number, y: number, gallop: number) {
+	ctx.beginPath(); // body
+	ctx.ellipse(x, y, 11, 5, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.beginPath(); // neck
+	ctx.moveTo(x + 7, y - 2);
+	ctx.lineTo(x + 12, y - 10);
+	ctx.lineTo(x + 15, y - 9);
+	ctx.lineTo(x + 11, y);
+	ctx.closePath();
+	ctx.fill();
+	ctx.beginPath(); // head
+	ctx.ellipse(x + 15, y - 11, 4, 2.4, -0.3, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.lineWidth = 1.2;
+	ctx.beginPath(); // antlers
+	ctx.moveTo(x + 13, y - 13);
+	ctx.lineTo(x + 11, y - 19);
+	ctx.moveTo(x + 12, y - 16);
+	ctx.lineTo(x + 9, y - 18);
+	ctx.moveTo(x + 11, y - 19);
+	ctx.lineTo(x + 14, y - 21);
+	ctx.stroke();
+	const swing = Math.sin(gallop) * 5;
+	ctx.lineWidth = 1.6;
+	ctx.beginPath(); // legs + tail
+	ctx.moveTo(x + 6, y + 3);
+	ctx.lineTo(x + 9 + swing, y + 11);
+	ctx.moveTo(x + 4, y + 3);
+	ctx.lineTo(x + 6 - swing, y + 11);
+	ctx.moveTo(x - 6, y + 3);
+	ctx.lineTo(x - 9 - swing, y + 11);
+	ctx.moveTo(x - 8, y + 3);
+	ctx.lineTo(x - 11 + swing, y + 10);
+	ctx.moveTo(x - 10, y - 2);
+	ctx.lineTo(x - 14, y - 5);
+	ctx.stroke();
+}
+
+function sleigh(ctx: CanvasRenderingContext2D) {
+	ctx.lineWidth = 2;
+	ctx.beginPath(); // runner with curled front + struts
+	ctx.moveTo(-22, 8);
+	ctx.lineTo(14, 8);
+	ctx.quadraticCurveTo(24, 8, 22, 1);
+	ctx.moveTo(-14, 8);
+	ctx.lineTo(-14, 3);
+	ctx.moveTo(8, 8);
+	ctx.lineTo(8, 3);
+	ctx.stroke();
+	ctx.beginPath(); // body
+	ctx.moveTo(-24, -8);
+	ctx.quadraticCurveTo(-24, 4, -14, 4);
+	ctx.lineTo(14, 4);
+	ctx.quadraticCurveTo(20, 2, 18, -4);
+	ctx.lineTo(6, -2);
+	ctx.lineTo(-12, -2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.beginPath(); // Santa + sack
+	ctx.moveTo(4, -7);
+	ctx.arc(-2, -7, 6, 0, Math.PI * 2);
+	ctx.moveTo(2.5, -15);
+	ctx.arc(-1, -15, 3.5, 0, Math.PI * 2);
+	ctx.moveTo(-4.5, -17);
+	ctx.lineTo(-9, -23);
+	ctx.lineTo(2.5, -18);
+	ctx.closePath();
+	ctx.moveTo(-9, -8);
+	ctx.arc(-15, -8, 6, 0, Math.PI * 2);
+	ctx.fill();
 }
