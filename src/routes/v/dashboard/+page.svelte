@@ -34,8 +34,14 @@
 			: viewportWidth >= 700 && viewportWidth > viewportHeight
 				? 'split'
 				: 'stacked';
-	/** Stacked: height of the free area below the TopBar. */
-	const focusHeight = $derived(Math.min(Math.max(viewportHeight * 0.56, 320), 560));
+	/**
+	 * Stacked: height of the free area below the TopBar — up to half the width
+	 * on wide windows, so the house keeps sky above it (a 560 px strip across a
+	 * tall desktop window squeezed it to the top).
+	 */
+	const focusHeight = $derived(
+		Math.min(Math.max(viewportHeight * 0.56, 320), Math.max(560, viewportWidth * 0.5))
+	);
 	const columnWidth = $derived(Math.min(Math.max(viewportWidth * 0.4, 340), 460));
 	/** Split: the column's tint fades out beyond its edge; the free area starts after it. */
 	const columnFade = 64;
@@ -208,7 +214,11 @@
 				class="scene_overlay scene_sheet"
 				style:min-height="{Math.max(0, viewportHeight - sceneState.topBarHeight - focusHeight)}px"
 			>
-				<section class="dashboard_grid mx-auto w-full max-w-[800px] px-4 pb-4 pt-3">
+				<!-- one column, today + month side by side: the chart-only live card is
+				shorter than today + month, the two-column grid left a gap under it -->
+				<section
+					class="dashboard_grid dashboard_grid_single mx-auto w-full max-w-[800px] px-4 pb-4 pt-3"
+				>
 					{@render cards(userSettings, true)}
 				</section>
 			</div>
@@ -331,7 +341,7 @@
 		background: linear-gradient(to bottom, var(--tint-ramp));
 	}
 
-	/* split card column: one column, today + month side by side */
+	/* scene layouts: one column, today + month side by side */
 	.dashboard_grid.dashboard_grid_single {
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		grid-template-areas:

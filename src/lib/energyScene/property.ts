@@ -78,9 +78,10 @@ export function buildGrounds(s: EnergyScene) {
 }
 
 /**
- * Anthracite slat panels between white pillars along the street east of the
- * entrance (none in front of the west garden), a gate at the entrance path,
- * open to the driveway.
+ * Anthracite slat panels between white pillars along the street, from the
+ * west hedge past the front garden to the driveway (user: it runs the whole
+ * front), a gate between the posts at the entrance path; nothing east of the
+ * driveway.
  */
 function buildFence(s: EnergyScene) {
 	const z = Lot.fenceZ;
@@ -93,8 +94,8 @@ function buildFence(s: EnergyScene) {
 		doubleSided: true
 	});
 	for (const [from, to] of [
-		[2.7, 5.9],
-		[12.8, 14.4]
+		[-15.5, 0.9],
+		[2.7, 5.9]
 	]) {
 		const count = Math.max(1, Math.round((to - from) / 2.4));
 		const step = (to - from) / count;
@@ -106,9 +107,7 @@ function buildFence(s: EnergyScene) {
 			if (index < count) s.box([step - 0.34, 0.92, 0.05], [x + step / 2, 0.68, z], slats);
 		}
 	}
-	// gate between its posts at the entrance path
-	s.box([0.34, 1.25, 0.34], [0.9, 0.625, z], white);
-	s.box([0.4, 0.06, 0.4], [0.9, 1.28, z], cap);
+	// gate between the runs' end posts at the entrance path
 	s.box([1.75, 1.0, 0.05], [1.8, 0.72, z], slats);
 }
 
@@ -469,12 +468,12 @@ export function buildCarport(s: EnergyScene) {
 	);
 
 	// second PV strip along the house wall, front to back: 5 rows of two
-	// landscape modules, east edge raised 6° (as on the drone photo)
+	// landscape modules, west edge raised 6° so they face east (user)
 	const mount = new THREE.Group();
 	mount.position.set(7.95, Lot.carportHeight + 0.3, 2.3);
 	// yaw: module length (local z) across the bay; tilt about the depth axis
 	mount.quaternion
-		.setFromAxisAngle(new THREE.Vector3(0, 0, 1), (6 * Math.PI) / 180)
+		.setFromAxisAngle(new THREE.Vector3(0, 0, 1), (-6 * Math.PI) / 180)
 		.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2));
 	s.root.add(mount);
 	for (let row = 0; row < 5; row++) {
@@ -484,7 +483,7 @@ export function buildCarport(s: EnergyScene) {
 	}
 	const rail = s.pbr(0.55, 0.56, 0.58, { roughness: 0.4, metallic: 0.8 });
 	for (const x of [7.0, 8.9]) {
-		s.box([0.06, 0.06, 5.3], [x, Lot.carportHeight + 0.14 + (x - 7.0) * 0.1, 2.3], rail);
+		s.box([0.06, 0.06, 5.3], [x, Lot.carportHeight + 0.14 + (8.9 - x) * 0.1, 2.3], rail);
 	}
 
 	// go-e on the house wall at the front of the left bay, next to the

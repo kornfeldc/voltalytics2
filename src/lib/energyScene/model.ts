@@ -27,6 +27,15 @@ export interface EnergyFlowState {
 	carSource: CarSource;
 }
 
+/**
+ * Readings below this are rounding noise, not a flow (e.g. 0,03 kW "to grid"):
+ * shown as 0 kW, without a direction or pulses (user, FEATURES.md #3).
+ */
+export const flowTolerance = 0.1;
+
+/** `kw` or 0 inside the tolerance. */
+const flow = (kw: number) => (Math.abs(kw) < flowTolerance ? 0 : kw);
+
 export function flowState(
 	realtime: IInverterRealTimeData | undefined,
 	charging: { kw: number; status: ChargingStatus } | undefined,
@@ -47,16 +56,16 @@ export function flowState(
 	if (realtime) {
 		state.hasData = true;
 		state.timestamp = realtime.timestamp ? new Date(realtime.timestamp) : undefined;
-		state.solarKw = Math.abs(realtime.powerProduction ?? 0);
-		state.homeKw = Math.abs(realtime.powerUsage ?? 0);
-		const toGrid = realtime.powerToGrid ?? 0;
-		const fromGrid = Math.abs(realtime.powerFromGrid ?? 0);
-		state.gridKw = toGrid > 0.01 ? toGrid : -fromGrid;
-		const toBattery = realtime.powerToBattery ?? 0;
-		const fromBattery = Math.abs(realtime.powerFromBattery ?? 0);
-		state.batteryKw = toBattery > 0.01 ? toBattery : -fromBattery;
+		state.solarKw = flow(Math.abs(realtime.powerProduction ?? 0));
+		state.homeKw = flow(Math.abs(realtime.powerUsage ?? 0));
+		const toGrid = flow(realtime.powerToGrid ?? 0);
+		const fromGrid = flow(Math.abs(realtime.powerFromGrid ?? 0));
+		state.gridKw = toGrid > 0 ? toGrid : -fromGrid;
+		const toBattery = flow(realtime.powerToBattery ?? 0);
+		const fromBattery = flow(Math.abs(realtime.powerFromBattery ?? 0));
+		state.batteryKw = toBattery > 0 ? toBattery : -fromBattery;
 		state.batterySoc = realtime.batterySoc ?? null;
-		state.showsBattery = realtime.batterySoc != null || toBattery > 0.01 || fromBattery > 0.01;
+		state.showsBattery = realtime.batterySoc != null || toBattery > 0 || fromBattery > 0;
 	}
 	if (
 		hasWallbox &&
@@ -64,7 +73,7 @@ export function flowState(
 		charging.status !== 'not_charging' &&
 		charging.status !== 'no_car'
 	) {
-		state.carKw = charging.kw;
+		state.carKw = flow(charging.kw);
 		state.carSource =
 			charging.status === 'excess'
 				? 'solar'
@@ -171,9 +180,9 @@ export interface CameraRig {
 }
 
 /**
- * Fits ~29 m of the property into the free width (at least ±7.5 m into its
- * height) and keeps the horizon about a quarter down the free area so sky and
- * sun stay in frame.
+ * Fits ~29 m of the property into the free width (at least ±10 m into its
+ * height, so wide, short areas keep sky above the roof for the sun) and keeps
+ * the horizon about a quarter down the free area.
  */
 export function framing(size: { width: number; height: number }, safeRect?: Rect): CameraRig {
 	const width = Math.max(size.width, 1);
@@ -188,7 +197,7 @@ export function framing(size: { width: number; height: number }, safeRect?: Rect
 	const halfSpan = 14.5;
 	const focal = Math.min(
 		safeWidth / ((2 * halfSpan) / distance),
-		safeHeight / ((2 * 7.5) / distance)
+		safeHeight / ((2 * 10) / distance)
 	);
 	// the axis passes the free area's centre; the horizon sits a quarter of its
 	// height above that, i.e. the camera pitches down by that angle

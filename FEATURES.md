@@ -80,7 +80,7 @@ stacked/split layouts.
 
 - No DB columns, API or engine changes; no new setting.
 - **Camera rig = pinhole with lens shift** (`CameraRig` / `framing`): focal
-  length `f = min(focusW / (2·14.5/38), focusH / (2·7.5/38))` points, optical
+  length `f = min(focusW / (2·14.5/38), focusH / (2·10/38))` points, optical
   axis through the centre of the **focus rect** (the free area), pitch
   `clamp(atan(0.25·focusH / f), 5°, 15°)` — #3's framing (29 m across, horizon a
   quarter down), now for any rect inside a full-screen view. Off-axis
@@ -94,10 +94,18 @@ stacked/split layouts.
     column (its tint's fade). iPhone Duo half open like a book: the column ends
     at the crease, focus right of it (and of the fade).
   - _stacked_ — otherwise: focus = the band below the top bar, as tall as
-    `min(max(56 % of the height, 320), 560)` (web: of the viewport, iOS: of the
-    safe area — as in #3); the cards start below it and scroll up over the fixed
-    scene, the bar gets its background back once cards pass under it. Duo half
-    open like a laptop: focus above the fold, cards below it.
+    `min(max(56 % of the height, 320), max(560, 50 % of the width))` (web: of
+    the viewport, iOS: of the safe area); the cards start below it and scroll
+    up over the fixed scene, the bar gets its background back once cards pass
+    under it. Duo half open like a laptop: focus above the fold, cards below it.
+  - Sky (user: "the sky is missing" on a tall desktop window — a 560 px strip
+    across 1524 px squeezed the house to the top): the focus grows with the
+    width up to half of it, and the rig keeps ±10 m (was 7.5) of height, so
+    wide, short areas show sky with the sun above the roof.
+  - Web stacked cards use the split column's grid (one column, today + month
+    side by side): the chart-only live card is shorter than today + month and
+    left a gap under it in the two-column grid. iOS stacks its two columns
+    independently.
   - One scene instance across the layouts: resizing, rotating or folding never
     remounts it.
 - **Inside the focus rect:** header pills at its top (< 500 wide: at its bottom,
@@ -150,7 +158,8 @@ shapes on a phone simulator; combines with `-voltalytics-qa-fold`.
       that no callout or header pill sits under a card, the TopBar or the
       card-area tint, or outside the viewport, and that the tinted sheet
       reaches the bottom of the viewport; new cases tablet landscape 1180×820,
-      phone landscape 874×402, tall window 1520×1820
+      phone landscape 874×402, tall window 1520×1820 (sunny, sky + sun check),
+      flow tolerance (0,03 kW to grid → "0,00 kW", no direction)
 - [x] iOS: iPhone 17 simulator build green; stacked day/night/scrolled in light
       and dark, rain, snow; `-voltalytics-qa-window` 951×669 (split), 669×951
       (stacked, two columns), book + tabletop folds, 874×402, Halloween and
@@ -254,7 +263,11 @@ open double carport — Model Y (nose in, left, at the go-e) + BYD Atto 2 (nose
 out, right), PV strip front to back. Rev 6 (2026-10-27): the same scene, layouts
 and weather on the web — **optional** there, toggled per browser. Rev 7: off by
 default on the web (user). Rev 8 (2026-10-28, experiment): the scene full-screen with the
-dashboard as an overlay — see #5.
+dashboard as an overlay — see #5. Rev 9 (2026-10-28, user): flows below
+0.1 kW count as 0, the battery callout shows a battery pack filled to the
+state of charge, the street fence runs the whole front west of the
+driveway (none east of it), and the carport PV strip faces east (west edge
+raised 6°; it faced west).
 
 **Scope:** both platforms. Started iOS-only ("regarding the ios version"); the
 user then asked for the exact same visualization on the web, optional and not
@@ -278,6 +291,12 @@ status, current price) plus live weather:
   cyan, export teal, import rose, car = its charge source), roof/carport PV
   share 80/20, Vienna-independent sun from the weather place, camera framing
   (~29 m span, horizon a quarter down the safe area, lens shift below bars).
+  Flow tolerance: readings below 0.1 kW are rounding noise and count as 0 —
+  no value, no direction, no pulses (`flowTolerance`; e.g. 0,03 kW "to grid"
+  showed as an export). Battery callout: a battery pack of four modules filled
+  to the state of charge (18 × 30, compact 12 × 20). Fence: slat panels from
+  the west hedge (x −15.5) along the front garden to the entrance gate and on
+  to the driveway; nothing east of the driveway.
 
 **iOS:**
 

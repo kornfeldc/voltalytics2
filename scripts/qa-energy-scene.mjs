@@ -65,12 +65,16 @@ const harness = `<!doctype html>
 			);
 		};
 		// day: PV covers home + battery + export, the Model Y charges from excess;
-		// night: battery covers the home, the car force-charges from the grid
+		// night: battery covers the home, the car force-charges from the grid;
+		// noise: readings inside the 0.1 kW flow tolerance (no flow, no direction)
 		const realTime = night
 			? { timestamp: new Date().toISOString(), batterySoc: 61, powerProduction: 0, powerUsage: 0.9,
 				powerToBattery: 0, powerFromBattery: -0.9, powerToGrid: 0, powerFromGrid: -3.7 }
-			: { timestamp: new Date().toISOString(), batterySoc: 74, powerProduction: 4.6, powerUsage: 1.7,
-				powerToBattery: 1.0, powerFromBattery: 0, powerToGrid: 1.9, powerFromGrid: 0 };
+			: params.get('state') === 'noise'
+				? { timestamp: new Date().toISOString(), batterySoc: 15, powerProduction: 4.9, powerUsage: 4.95,
+					powerToBattery: 0, powerFromBattery: -0.05, powerToGrid: 0.03, powerFromGrid: 0 }
+				: { timestamp: new Date().toISOString(), batterySoc: 74, powerProduction: 4.6, powerUsage: 1.7,
+					powerToBattery: 1.0, powerFromBattery: 0, powerToGrid: 1.9, powerFromGrid: 0 };
 		const weather = night
 			? { temperature_2m: 8.4, weather_code: 0, cloud_cover: 5, precipitation: 0, snowfall: 0, snow_depth: 0, wind_speed_10m: 6, is_day: 0 }
 			: { temperature_2m: 14.2, weather_code: 1, cloud_cover: 20, precipitation: 0, snowfall: 0, snow_depth: 0, wind_speed_10m: 9, is_day: 1 };
@@ -203,7 +207,13 @@ const cases = [
 	// landscape shapes from 700 px get the card column (FEATURES.md #5)
 	{ name: 'tablet-landscape-split', device: tabletLandscape, query: 'qaHour=16' },
 	{ name: 'phone-landscape-split', device: phoneLandscape, query: 'qaHour=13.5' },
-	{ name: 'tall-window-stacked', device: tallWindow, query: 'qaHour=10.4' },
+	{
+		name: 'tall-window-stacked',
+		device: tallWindow,
+		query: 'qaHour=12.9&qaWeather=clear&qaTemp=13'
+	},
+	// 0,03 kW to grid / 0,05 kW from the battery: rounding noise, no flows
+	{ name: 'flow-tolerance', device: iphone17, query: 'state=noise&qaHour=12.9' },
 	{ name: 'desktop-split-day', device: desktop, query: 'qaHour=13.5' },
 	// card column scrolled: the header card stays pinned, cards pass under it
 	{ name: 'desktop-split-scrolled', device: desktop, query: 'qaHour=13.5', scroll: 300 },
@@ -534,6 +544,12 @@ try {
 					`${facts.sheetBottom} < ${facts.viewportHeight}`
 				)
 			);
+		}
+		if (qa.name === 'flow-tolerance') {
+			check('flows inside the 0.1 kW tolerance show no value and no direction', () => {
+				assert.ok(facts.callouts.includes('0,00 kW'), `callouts: ${facts.callouts}`);
+				assert.ok(!facts.callouts.some((text) => /0,0[35] kW/.test(text)));
+			});
 		}
 		if (qa.season) {
 			check(`${qa.name}: ${qa.season} decorations active`, () =>

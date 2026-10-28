@@ -299,6 +299,8 @@
 		active: boolean;
 		hangsBelow: boolean;
 		lineHeight: number;
+		/** Battery: state of charge 0…1 — drawn as a battery pack filled to it. */
+		level?: number;
 	}
 
 	const colors = {
@@ -378,7 +380,9 @@
 				color: colors.battery,
 				active: Math.abs(flows.batteryKw) > 0.01,
 				hangsBelow: true,
-				lineHeight: 14
+				lineHeight: 14,
+				level:
+					flows.batterySoc != null ? Math.min(1, Math.max(0, flows.batterySoc / 100)) : undefined
 			});
 		}
 		if (flows.showsCar) {
@@ -518,7 +522,42 @@
 				{#snippet chip()}
 					<div class="chip" class:compact style:transform="translateX({shift}px)">
 						<span class="chip-icon" style:color={callout.active ? callout.color : colors.inactive}>
-							<Icon size={compact ? 11 : 13} strokeWidth={2.6} />
+							{#if callout.level != null}
+								<!-- battery pack: four modules, filled to the state of charge -->
+								<svg class="battery-pack" class:compact viewBox="0 0 18 30" aria-hidden="true">
+									<rect x="6" y="0.5" width="6" height="3" rx="1" fill="rgba(255,255,255,0.85)" />
+									<rect
+										x="1.3"
+										y="3.3"
+										width="15.4"
+										height="25.9"
+										rx="3"
+										fill="none"
+										stroke="rgba(255,255,255,0.85)"
+										stroke-width="1.6"
+									/>
+									<rect
+										x="3.6"
+										y={27 - 21.4 * callout.level}
+										width="10.8"
+										height={21.4 * callout.level}
+										rx="1.4"
+										fill={colors.battery}
+									/>
+									{#each [1, 2, 3] as seam (seam)}
+										<line
+											x1="3.6"
+											x2="14.4"
+											y1={5.6 + 5.35 * seam}
+											y2={5.6 + 5.35 * seam}
+											stroke="rgba(10,14,22,0.55)"
+											stroke-width="0.9"
+										/>
+									{/each}
+								</svg>
+							{:else}
+								<Icon size={compact ? 11 : 13} strokeWidth={2.6} />
+							{/if}
 						</span>
 						<span class="chip-text">
 							<span class="chip-value">{callout.value}</span>
@@ -654,6 +693,16 @@
 
 	.chip-icon {
 		display: flex;
+	}
+
+	.battery-pack {
+		width: 18px;
+		height: 30px;
+	}
+
+	.battery-pack.compact {
+		width: 12px;
+		height: 20px;
 	}
 
 	.chip-text {
