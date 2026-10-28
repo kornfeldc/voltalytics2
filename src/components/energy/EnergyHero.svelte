@@ -2,9 +2,11 @@
 	// Dashboard hero (FEATURES.md #3) — port of iOS EnergyHeroView.swift: the 3D
 	// model of the user's property (three.js, lazy-loaded) on a time-of-day +
 	// live-weather sky, with value callouts, a live header and the current
-	// conditions. Narrow heroes (< 500 px) use single-line chips and move the
-	// header to the bottom, so the roof and pole callouts keep the sky to
-	// themselves.
+	// conditions. Fills the whole viewport behind the dashboard (FEATURES.md #5):
+	// `focus` is the part the cards and the TopBar leave free — the camera frames
+	// the property into it (lens shift), callouts and header chips stay inside it.
+	// Narrow focus areas (< 500 px) use single-line chips and move the header to
+	// the bottom, so the roof and pole callouts keep the sky to themselves.
 	import { onMount } from 'svelte';
 	import moment from 'moment';
 	import {
@@ -32,7 +34,8 @@
 		flowState,
 		framing,
 		project,
-		type CarSource
+		type CarSource,
+		type Rect
 	} from '$lib/energyScene/model';
 	import {
 		drawHaze,
@@ -58,15 +61,11 @@
 
 	interface Props {
 		hasWallbox: boolean;
-		/** Height covered by the floating TopBar (stacked layout): sky only, header + chips below it. */
-		topInset?: number;
-		/** Stacked layout: the street dissolves into the page background above the cards. */
-		fadesOut?: boolean;
-		/** Split layout (web): the left edge dissolves into the card column's background. */
-		fadesLeft?: boolean;
+		/** Part of the hero not covered by the TopBar or the cards (hero px); default: all of it. */
+		focus?: Rect;
 	}
 
-	let { hasWallbox, topInset = 0, fadesOut = false, fadesLeft = false }: Props = $props();
+	let { hasWallbox, focus }: Props = $props();
 
 	let width = $state(0);
 	let height = $state(0);
@@ -89,14 +88,12 @@
 	let onScreen = true;
 	let scene: EnergyScene | undefined;
 
-	const compact = $derived(width > 0 && width < 500);
-	const pixelRatio = () => Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2);
-	const rig = $derived(
-		framing(
-			{ width, height },
-			{ x: 0, y: topInset, width: Math.max(1, width), height: Math.max(1, height - topInset) }
-		)
+	const safe = $derived(
+		focus ?? { x: 0, y: 0, width: Math.max(1, width), height: Math.max(1, height) }
 	);
+	const compact = $derived(safe.width < 500);
+	const pixelRatio = () => Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2);
+	const rig = $derived(framing({ width, height }, safe));
 	const daylight = $derived(daylightAt(sceneDate(now), place.latitude, place.longitude));
 	/** Dev-only `?qaSkyTime=5.6` freezes the holiday sky at that moment (screenshots). */
 	const qaSkyTime =
@@ -201,7 +198,7 @@
 		const key = `${width}x${height}@${ratio}`;
 		if (key === sceneSize) return;
 		sceneSize = key;
-		target.resize({ width, height, originX: 0 }, { width, height }, ratio);
+		target.resize({ width, height }, ratio);
 	}
 
 	$effect(() => {
@@ -400,33 +397,72 @@
 		return items;
 	});
 
-	const placed = $derived.by(() => {
-		if (width <= 0 || height <= 0) return [];
-		const safe = rig.safeRect;
+	/** Header pills in hero px (the header row sits in the focus area, see the markup). */
+	const pills = $derived.by((): Rect[] => {
+		const rowHeight = Math.max(liveHeight, weather ? weatherHeight : 0);
+		const top = compact ? safe.y + safe.height - 10 - rowHeight : safe.y + 8;
+		return [
+			{ x: safe.x + 16, y: top, width: liveWidth, height: liveHeight },
+			...(weather
+				? [
+						{
+							x: safe.x + safe.width - 16 - weatherWidth,
+							y: top,
+							width: weatherWidth,
+							height: weatherHeight
+						}
+					]
+				: [])
+		];
+	});
+
+	/**
+	 * Whether the chip hangs below its anchor, and its sideways shift (the leader
+	 * stays on the anchor). Chips stay inside the safe area; a rising chip with a
+	 * header pill in the way slides sideways a little, and hangs below only when
+	 * that is not enough — the solar chip would cover the roof.
+	 */
+	const placement = (callout: Callout, point: { x: number; y: number }) => {
 		const halfChip = compact ? 46 : 72;
 		const chipHeight = compact ? 26 : 42;
-		// web: wide stacked heroes keep the header on top, where the pole top can
-		// reach it — a chip that would rise into a header pill hangs below instead
-		const pills = compact
-			? []
-			: [[16, 16 + liveWidth], ...(weather ? [[width - 16 - weatherWidth, width - 16]] : [])];
-		const headerBottom = topInset + 8 + Math.max(liveHeight, weather ? weatherHeight : 0);
+		const shift =
+			Math.max(0, safe.x + halfChip + 6 - point.x) -
+			Math.max(0, point.x + halfChip + 6 - (safe.x + safe.width));
+		// no room above (wide panes put the pole top near the edge): hang below
+		if (callout.hangsBelow || point.y < safe.y + callout.lineHeight + 48) {
+			return { below: true, shift };
+		}
+		const top = point.y + 3 - callout.lineHeight - chipHeight;
+		const blocked = (slide: number) =>
+			pills.some(
+				(pill) =>
+					point.x + slide - halfChip - 6 < pill.x + pill.width &&
+					point.x + slide + halfChip + 6 > pill.x &&
+					top - 6 < pill.y + pill.height &&
+					top + chipHeight + 6 > pill.y
+			);
+		if (!blocked(shift)) return { below: false, shift };
+		const slid = pills
+			.flatMap((pill) => [
+				pill.x + pill.width + 7 + halfChip - point.x,
+				pill.x - 7 - halfChip - point.x
+			])
+			.filter(
+				(slide) =>
+					Math.abs(slide - shift) <= halfChip * 0.35 &&
+					point.x + slide - halfChip >= safe.x + 5 &&
+					point.x + slide + halfChip <= safe.x + safe.width - 5 &&
+					!blocked(slide)
+			)
+			.sort((a, b) => Math.abs(a - shift) - Math.abs(b - shift));
+		return slid.length > 0 ? { below: false, shift: slid[0] } : { below: true, shift };
+	};
+
+	const placed = $derived.by(() => {
+		if (width <= 0 || height <= 0) return [];
 		return callouts.flatMap((callout) => {
 			const point = project(rig, callout.anchor);
-			if (!point) return [];
-			// keep the chip inside the safe area; the leader stays on the anchor
-			const shift =
-				Math.max(0, safe.x + halfChip + 6 - point.x) -
-				Math.max(0, point.x + halfChip + 6 - (safe.x + safe.width));
-			const chipTop = point.y + 3 - callout.lineHeight - chipHeight;
-			const chipLeft = point.x + shift - halfChip;
-			const chipRight = point.x + shift + halfChip;
-			const underHeader =
-				chipTop < headerBottom + 6 &&
-				pills.some(([left, right]) => chipRight > left - 6 && chipLeft < right + 6);
-			// no room above (wide panes put the pole top near the edge): hang below
-			const below = callout.hangsBelow || point.y < safe.y + callout.lineHeight + 48 || underHeader;
-			return [{ callout, point, below, shift }];
+			return point ? [{ callout, point, ...placement(callout, point) }] : [];
 		});
 	});
 
@@ -459,32 +495,6 @@
 	};
 
 	const liveTime = $derived(realtime?.timestamp ? moment(realtime.timestamp).format('HH:mm') : '');
-
-	/**
-	 * Opaque scene; with `fadesOut` the street dissolves over the last ~110 px,
-	 * with `fadesLeft` the left edge over 12 % of the width (max 180 px), eased
-	 * (smoothstep) so no band shows where the fade ends.
-	 */
-	const maskStyle = $derived.by(() => {
-		const masks: string[] = [];
-		if (fadesOut && height > 0) {
-			const start = Math.max(0.5, 1 - Math.min(110, height * 0.24) / height) * 100;
-			masks.push(`linear-gradient(to bottom, black 0%, black ${start}%, transparent 100%)`);
-		}
-		if (fadesLeft && width > 0) {
-			const band = Math.min(180, width * 0.12);
-			const stops = Array.from({ length: 9 }, (_, index) => {
-				const t = index / 8;
-				return `rgba(0, 0, 0, ${(t * t * (3 - 2 * t)).toFixed(3)}) ${(band * t).toFixed(1)}px`;
-			});
-			masks.push(`linear-gradient(to right, ${stops.join(', ')})`);
-		}
-		if (masks.length === 0) return '';
-		const mask = masks.join(', ');
-		const composite =
-			masks.length > 1 ? ' mask-composite: intersect; -webkit-mask-composite: source-in;' : '';
-		return `mask-image: ${mask}; -webkit-mask-image: ${mask};${composite}`;
-	});
 </script>
 
 <div
@@ -495,7 +505,7 @@
 	data-scene-ready={sceneVisible}
 	data-season={season ?? 'none'}
 >
-	<div class="layers" style={maskStyle}>
+	<div class="layers">
 		<canvas class="layer" bind:this={skyCanvas}></canvas>
 		<canvas class="layer scene" class:visible={sceneVisible} bind:this={sceneCanvas}></canvas>
 		<canvas class="layer" bind:this={fxCanvas}></canvas>
@@ -541,8 +551,10 @@
 
 	<div
 		class="header"
-		style:top={compact ? 'auto' : `${topInset + 8}px`}
-		style:bottom={compact ? '10px' : 'auto'}
+		style:left="{safe.x}px"
+		style:width="{safe.width}px"
+		style:top={compact ? 'auto' : `${safe.y + 8}px`}
+		style:bottom={compact ? `${height - safe.y - safe.height + 10}px` : 'auto'}
 	>
 		<div class="pill live" bind:clientWidth={liveWidth} bind:clientHeight={liveHeight}>
 			<span class="live-dot" class:on={!!realtime}></span>
@@ -683,8 +695,6 @@
 
 	.header {
 		position: absolute;
-		left: 0;
-		right: 0;
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;

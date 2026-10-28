@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {
 	dayAmount,
+	lensFrame,
 	sameFlowState,
 	sunDirection,
 	warmth,
@@ -169,24 +170,10 @@ export class EnergyScene {
 		this.paused = paused;
 	}
 
-	/** Render size (lens-shifted frame), visible window and pixel ratio. */
-	resize(
-		frame: { width: number; height: number; originX: number },
-		visible: { width: number; height: number },
-		pixelRatio: number
-	) {
+	/** Canvas size (CSS px) and pixel ratio; the projection follows the rig in `apply`. */
+	resize(size: { width: number; height: number }, pixelRatio: number) {
 		this.renderer.setPixelRatio(pixelRatio);
-		this.renderer.setSize(visible.width, visible.height, false);
-		this.camera.aspect = frame.width / frame.height;
-		this.camera.setViewOffset(
-			frame.width,
-			frame.height,
-			-frame.originX,
-			0,
-			visible.width,
-			visible.height
-		);
-		this.camera.updateProjectionMatrix();
+		this.renderer.setSize(size.width, size.height, false);
 	}
 
 	apply(
@@ -199,7 +186,18 @@ export class EnergyScene {
 		if (rigKey !== this.appliedRigKey) {
 			this.appliedRigKey = rigKey;
 			this.appliedRig = rig;
-			this.camera.fov = rig.verticalFov;
+			// lens shift: a symmetric frustum around the optical axis, the view a window into it
+			const lens = lensFrame(rig);
+			this.camera.fov = lens.verticalFov;
+			this.camera.aspect = lens.fullWidth / lens.fullHeight;
+			this.camera.setViewOffset(
+				lens.fullWidth,
+				lens.fullHeight,
+				lens.offsetX,
+				lens.offsetY,
+				rig.viewSize.width,
+				rig.viewSize.height
+			);
 			this.camera.position.set(...rig.position);
 			this.camera.lookAt(v3(rig.target));
 			this.camera.updateProjectionMatrix();

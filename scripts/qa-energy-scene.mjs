@@ -1,10 +1,12 @@
 // Run: node scripts/qa-energy-scene.mjs [outDir]
 // Visual QA for FEATURES.md #3 (3D house view, web): mounts the /v layout +
 // dashboard with mocked API and weather responses (fixtures = iOS
-// MockData.swift) and saves screenshots for the stacked (phone/tablet), split
-// (desktop) and toggle-off (unchanged dashboard) cases, plus night, weather
-// and settings variants. Checks the layout chrome along the way. Requires
-// Playwright Chromium or local Chrome (WebGL may run in software: slow).
+// MockData.swift) and saves screenshots for the stacked (portrait shapes), split
+// (landscape shapes) and toggle-off (unchanged dashboard) cases, plus night,
+// weather and settings variants. Checks the layout chrome along the way, and
+// that the cards floating over the full-screen scene (FEATURES.md #5) leave
+// callouts and header pills uncovered. Requires Playwright Chromium or local
+// Chrome (WebGL may run in software: slow).
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -184,15 +186,24 @@ const tablet = {
 	isMobile: true,
 	hasTouch: true
 };
+const tabletLandscape = { ...tablet, viewport: { width: 1180, height: 820 } };
+const phoneLandscape = { ...iphone17, viewport: { width: 874, height: 402 } };
 const desktop = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 };
 const wide = { viewport: { width: 1920, height: 1100 }, deviceScaleFactor: 1 };
+// tall desktop window (the user's report: the tint ended below the cards)
+const tallWindow = { viewport: { width: 1520, height: 1820 }, deviceScaleFactor: 1 };
 
 const cases = [
-	{ name: 'phone-stacked-day', device: phone, query: 'qaHour=13.5', fullPage: true },
+	// the scene is fixed to the viewport: full-page captures would stretch it
+	{ name: 'phone-stacked-day', device: phone, query: 'qaHour=13.5' },
 	{ name: 'phone-stacked-scrolled', device: phone, query: 'qaHour=13.5', scroll: 600 },
 	{ name: 'phone-stacked-night', device: phone, query: 'state=night&qaHour=21' },
 	{ name: 'phone-off', device: phone, scene: false, fullPage: true },
 	{ name: 'tablet-stacked', device: tablet, query: 'qaHour=10' },
+	// landscape shapes from 700 px get the card column (FEATURES.md #5)
+	{ name: 'tablet-landscape-split', device: tabletLandscape, query: 'qaHour=16' },
+	{ name: 'phone-landscape-split', device: phoneLandscape, query: 'qaHour=13.5' },
+	{ name: 'tall-window-stacked', device: tallWindow, query: 'qaHour=10.4' },
 	{ name: 'desktop-split-day', device: desktop, query: 'qaHour=13.5' },
 	// card column scrolled: the header card stays pinned, cards pass under it
 	{ name: 'desktop-split-scrolled', device: desktop, query: 'qaHour=13.5', scroll: 300 },
@@ -456,6 +467,30 @@ try {
 			// battery labels exist only in InverterLiveGraph (the classic live card)
 			liveGraph: /(Dis)?[Cc]harging Battery/.test(document.body.innerText),
 			topBarBackground: getComputedStyle(document.querySelector('header')).backgroundColor,
+			sheetBottom: document.querySelector('.scene_sheet')?.getBoundingClientRect().bottom ?? null,
+			viewportHeight: innerHeight,
+			// callouts + header pills under a card or the TopBar, or outside the viewport
+			covered: (() => {
+				const overlay = [
+					...document.querySelectorAll(
+						'.dashboard_grid > div, header, .scene_sheet, .scene_column_tint'
+					)
+				].filter((el) => el.getBoundingClientRect().width > 0);
+				const box = (r) => [r.left, r.top, r.right, r.bottom].map(Math.round).join(',');
+				return [...document.querySelectorAll('.callout .chip, .callout .dot, .pill')].flatMap(
+					(el) => {
+						const r = el.getBoundingClientRect();
+						const label = el.closest('.callout, .pill')?.textContent?.trim().replace(/\s+/g, ' ');
+						if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight)
+							return [`${label} outside the viewport (${box(r)})`];
+						const over = overlay.find((o) => {
+							const q = o.getBoundingClientRect();
+							return r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top;
+						});
+						return over ? [`${label} under ${over.className.split(' ')[0] || over.tagName}`] : [];
+					}
+				);
+			})(),
 			requests: window.qa.requests,
 			resources: performance
 				.getEntriesByType('resource')
@@ -487,12 +522,25 @@ try {
 				assert.ok(!facts.requests.includes('open-meteo'), 'weather fetched without the scene');
 			});
 		}
+		if (scene && !qa.scroll && !qa.settings) {
+			check(`${qa.name}: the overlay leaves callouts and header pills uncovered`, () =>
+				assert.deepEqual(facts.covered, [])
+			);
+		}
+		if (scene && facts.sheetBottom !== null) {
+			check(`${qa.name}: the tinted sheet reaches the bottom of the viewport`, () =>
+				assert.ok(
+					facts.sheetBottom >= facts.viewportHeight - 1,
+					`${facts.sheetBottom} < ${facts.viewportHeight}`
+				)
+			);
+		}
 		if (qa.season) {
 			check(`${qa.name}: ${qa.season} decorations active`, () =>
 				assert.equal(facts.season, qa.season)
 			);
 		}
-		if (qa.name.startsWith('desktop-split')) {
+		if (qa.name.includes('-split')) {
 			check(`${qa.name}: split shows a single TopBar (in the card column)`, () =>
 				assert.equal(facts.headers, 1)
 			);

@@ -60,6 +60,108 @@ platforms (`IUserSettings`/`UserSettings` ↔ Supabase columns ↔ settings UI).
 
 ## In progress
 
+### 5. Full-screen 3D scene with the dashboard as an overlay — in-progress (web + ios implemented, kept by the user; device + live checks pending)
+
+**Goal:** with the 3D scene on (iOS: always; web: the per-browser toggle), the
+scene fills the whole screen on every size and shape — under status bar,
+navigation/tab bars and cards — and everything else (top bar, cards) floats
+over it as an overlay. The camera frames the property into the part the overlay
+leaves free, so no card or bar covers the house, its callouts or the
+live/weather pills.
+
+**Scope:** both platforms (user, 2026-10-28: "i wanna try something, on web and
+on ios … make the visualizaton (if enabled) full screen, on any screen size and
+shape. all the other controls/cards should just be an overlay … make sure that
+the overlay doesnt cover something important"). Started as an experiment on top
+of #3; the user kept it ("looks really nice now") — it replaces #3's
+stacked/split layouts.
+
+**Contract** (implemented identically on both platforms):
+
+- No DB columns, API or engine changes; no new setting.
+- **Camera rig = pinhole with lens shift** (`CameraRig` / `framing`): focal
+  length `f = min(focusW / (2·14.5/38), focusH / (2·7.5/38))` points, optical
+  axis through the centre of the **focus rect** (the free area), pitch
+  `clamp(atan(0.25·focusH / f), 5°, 15°)` — #3's framing (29 m across, horizon a
+  quarter down), now for any rect inside a full-screen view. Off-axis
+  projection: iOS `ProjectiveTransformCameraComponent` (reverse-Z matrix from
+  the rig, the RealityView is exactly the screen), web `camera.setViewOffset`
+  around a symmetric frustum (`lensFrame`). Callouts and sky use the same rig.
+- **Layouts**, by the window's shape (not orientation):
+  - _split_ — at least 700 wide and wider than tall: card column
+    `min(max(40 % width, 340), 460)` with its own header (logo, avatar) over the
+    left part of the scene, focus = the rest at full height, from 64 beyond the
+    column (its tint's fade). iPhone Duo half open like a book: the column ends
+    at the crease, focus right of it (and of the fade).
+  - _stacked_ — otherwise: focus = the band below the top bar, as tall as
+    `min(max(56 % of the height, 320), 560)` (web: of the viewport, iOS: of the
+    safe area — as in #3); the cards start below it and scroll up over the fixed
+    scene, the bar gets its background back once cards pass under it. Duo half
+    open like a laptop: focus above the fold, cards below it.
+  - One scene instance across the layouts: resizing, rotating or folding never
+    remounts it.
+- **Inside the focus rect:** header pills at its top (< 500 wide: at its bottom,
+  single-line chips); callouts clamped into it; sun arc, moon and the witch /
+  sleigh flights span it, not the whole screen. A rising chip that would hit a
+  header pill first slides sideways (up to 0.35 × the half chip width, the
+  leader keeps its anchor) and hangs below only when that is not enough — the
+  solar chip must not cover the roof (short focus areas, e.g. phone landscape).
+- Cards over the scene are frosted: iOS regular Liquid Glass with the card tint
+  (clear glass needs a dimming layer over busy content; the other tabs keep
+  clear glass), web `bg-card/70 backdrop-blur-xl`.
+- **Card-area tint** (user, 2026-10-28: "a slight purple translucent tint (like
+  the base background color before)", then "more purple", then "the middle
+  ground" with a softer fade): HSL 268 90% 11% at 52 % behind the area where
+  the cards are (light: 268 40% 93% at 48 %) — the web dark theme's hue, richer
+  than its near-black base — on both platforms. The cards sit completely on
+  it; its edges are eased (smoothstep) and it never covers the free area.
+  Split: solid behind the whole column, fading out over 64 pt/px beyond it —
+  the free area starts after the fade (user: the cards must be completely
+  inside the tint). Stacked: a sheet that fades in over 140 pt/px below the
+  free area, scrolls up with the cards and reaches at least the bottom of the
+  screen. Tabletop: below the fold, like the stacked sheet.
+
+**Web:** `src/lib/energyScene/model.ts` (rig, `lensFrame`), `scene.ts`
+(projection from the rig), `sky.ts` (sun, moon and flights in the focus rect),
+`EnergyHero.svelte` (`focus` prop replaces `topInset`/`fadesOut`/`fadesLeft`;
+measured pill rects; slide-or-hang placement), dashboard `+page.svelte` (fixed
+full-viewport scene — `100vh`, so a collapsing mobile toolbar doesn't resize
+it — under the column/stacked overlay; split threshold 900 px → 700 px and
+landscape-shaped), `TopBar.svelte` (embedded bar frosted, opaque backdrop band
+removed). #3's eased left-edge fade of the split scene is gone: the scene now
+runs behind the column.
+
+**iOS:** `EnergySceneModel.swift` (rig, `projectionMatrix`), `EnergyScene.swift`
+(projective camera), `EnergyHeroView.swift` (`focus` replaces `topInset`,
+`fadesOut` and the oversized lens-shift render; pill avoidance with slide),
+`DashboardView.swift` (scene + overlay per layout, column header as
+`safeAreaBar`), `Theme.swift` (`overScene` environment → regular glass). DEBUG
+`-voltalytics-qa-window <W>x<H>` (replaces `-voltalytics-qa-hero`) lays the whole
+dashboard out for that window size and scales it to fit — Duo inner-display
+shapes on a phone simulator; combines with `-voltalytics-qa-fold`.
+
+**Settings sync:** none.
+
+**Parity checklist:**
+
+- [x] web: `pnpm run build` green (three.js only in the lazy chunk);
+      svelte-check unchanged (27 errors / 10 warnings, none new); Prettier clean
+      on touched files; harness 150/150 incl. a new check per at-rest scene case
+      that no callout or header pill sits under a card, the TopBar or the
+      card-area tint, or outside the viewport, and that the tinted sheet
+      reaches the bottom of the viewport; new cases tablet landscape 1180×820,
+      phone landscape 874×402, tall window 1520×1820
+- [x] iOS: iPhone 17 simulator build green; stacked day/night/scrolled in light
+      and dark, rain, snow; `-voltalytics-qa-window` 951×669 (split), 669×951
+      (stacked, two columns), book + tabletop folds, 874×402, Halloween and
+      Christmas nights
+- [x] parity: iPhone 17 simulator vs web 402×874 — same framing (the web stacked
+      hero now gets the lens shift iOS always had)
+- [x] scroll bench, simulator (HEAD 16.7 ms/s hitches, now 6–12 ms/s)
+- [ ] iOS device: scroll bench + feel (full-screen RealityKit under glass)
+- [ ] real iPhone Duo (inner display, folds) and the web against the live app
+- [x] user verdict (2026-10-28): keep it
+
 ### 4. Holiday modes for the 3D scene (Halloween, Christmas, Easter) — in-progress (web + ios implemented; production check pending)
 
 **Goal:** around Halloween, Christmas and Easter the 3D house scene decorates
@@ -151,7 +253,8 @@ user's address (fallback Eisenstadt) with temperature + conditions shown. Rev 5:
 open double carport — Model Y (nose in, left, at the go-e) + BYD Atto 2 (nose
 out, right), PV strip front to back. Rev 6 (2026-10-27): the same scene, layouts
 and weather on the web — **optional** there, toggled per browser. Rev 7: off by
-default on the web (user).
+default on the web (user). Rev 8 (2026-10-28, experiment): the scene full-screen with the
+dashboard as an overlay — see #5.
 
 **Scope:** both platforms. Started iOS-only ("regarding the ios version"); the
 user then asked for the exact same visualization on the web, optional and not
@@ -222,7 +325,8 @@ status, current price) plus live weather:
     r 2000 m vs iOS 600 m) plus the haze band drawn _behind_ the scene. iOS
     draws the band over the scene, which crossed the roof on wide stacked heroes.
   - Wide stacked heroes (500–899 px) keep the header on top: a callout whose
-    chip would rise into a header pill hangs below instead.
+    chip would rise into a header pill hangs below instead (#5: on both
+    platforms, sliding sideways first).
   - Light calibrated against iPhone 17 simulator screenshots (day, night,
     snow; RealityKit lux/exposure ≠ Three.js units): sun
     `(0.85 + 4.6·day)·(1 − 0.78·clouds)`, sky light

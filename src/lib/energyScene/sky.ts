@@ -107,9 +107,9 @@ export function skyPalette(daylight: Daylight, weather: CurrentWeather | undefin
 	};
 }
 
-/** Where the moon sits (upper left), shared by the sky and the Halloween witch. */
+/** Where the moon sits (upper left of the free area), shared by the sky and the Halloween witch. */
 const moonPosition = (rig: CameraRig) => ({
-	x: rig.viewSize.width * 0.2,
+	x: rig.safeRect.x + rig.safeRect.width * 0.2,
 	y: Math.max(rig.safeRect.y + 30, horizonY(rig) * 0.3)
 });
 
@@ -157,7 +157,8 @@ export function drawSky(
 	const discOpacity = 1 - Math.min(1, Math.max(0, (clouds - 0.45) / 0.45));
 	if (discOpacity > 0.02) {
 		if (daylight.elevation > -3) {
-			const x = width * (0.86 - 0.72 * daylight.dayProgress);
+			// across the free area, not behind the card column
+			const x = rig.safeRect.x + rig.safeRect.width * (0.86 - 0.72 * daylight.dayProgress);
 			const lift = Math.min(1, Math.max(0, daylight.elevation) / 32);
 			const top = topInset + 34;
 			const y = horizon - Math.max(0, horizon - top) * lift - 6;
@@ -388,7 +389,7 @@ export function drawSeasonSky(
 	if (season === 'christmas') drawSleighFlight(ctx, rig, time, night);
 }
 
-/** Every 30 s a 7 s flight right → left, straight across the moon. */
+/** Every 30 s a 7 s flight right → left across the free area, straight across the moon. */
 function drawWitchFlight(
 	ctx: CanvasRenderingContext2D,
 	rig: CameraRig,
@@ -398,12 +399,13 @@ function drawWitchFlight(
 	const phase = time % 30;
 	if (phase > 7) return;
 	const p = phase / 7;
-	const { width } = rig.viewSize;
+	const start = rig.safeRect.x + rig.safeRect.width + 70;
+	const travel = rig.safeRect.width + 140;
 	const moon = moonPosition(rig);
-	const atMoon = (width + 70 - moon.x) / (width + 140);
-	const x = width + 70 - (width + 140) * p;
+	const atMoon = (start - moon.x) / travel;
+	const x = start - travel * p;
 	const y = moon.y + 50 * (p - atMoon) + 5 * Math.sin(p * 16);
-	const scale = Math.min(1.3, Math.max(0.7, width / 900));
+	const scale = Math.min(1.3, Math.max(0.7, rig.safeRect.width / 900));
 	ctx.save();
 	ctx.translate(x, y);
 	ctx.scale(scale, scale);
@@ -460,7 +462,10 @@ function drawWitchFlight(
 	ctx.restore();
 }
 
-/** Every 26 s a 10 s arc left → right; Rudolph's nose glows and a sparkle trail follows at night. */
+/**
+ * Every 26 s a 10 s arc left → right across the free area; Rudolph's nose glows
+ * and a sparkle trail follows at night.
+ */
 function drawSleighFlight(
 	ctx: CanvasRenderingContext2D,
 	rig: CameraRig,
@@ -470,11 +475,11 @@ function drawSleighFlight(
 	const phase = time % 26;
 	if (phase > 10) return;
 	const p = phase / 10;
-	const { width } = rig.viewSize;
-	const top = rig.safeRect.y;
+	const safe = rig.safeRect;
+	const top = safe.y;
 	const sky = Math.max(1, horizonY(rig) - top);
-	const scale = Math.min(1.2, Math.max(0.65, width / 1000));
-	const x = -220 * scale + (width + 300 * scale) * p;
+	const scale = Math.min(1.2, Math.max(0.65, safe.width / 1000));
+	const x = safe.x - 220 * scale + (safe.width + 300 * scale) * p;
 	const y = top + sky * (0.42 - 0.16 * Math.sin(Math.PI * p));
 	const ink = night > 0.5 ? `rgba(16, 10, 22, 0.92)` : `rgba(70, 30, 25, 0.85)`;
 	ctx.save();

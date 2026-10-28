@@ -25,9 +25,9 @@ export const sceneState = $state({
 	weatherAddress: stored(addressKey) ?? '',
 	/** Set by the dashboard: the layout hides its TopBar in `split` and lifts the width limit. */
 	layout: 'off' as SceneLayout,
-	/** Stacked layout scrolled to the top: the TopBar floats transparent over the scene. */
+	/** Stacked layout, cards not yet under the TopBar: it floats transparent over the scene. */
 	heroUnderBar: false,
-	/** Measured TopBar height (the stacked hero extends under it). */
+	/** Measured TopBar height (the stacked layout frames the property below it). */
 	topBarHeight: 56
 });
 

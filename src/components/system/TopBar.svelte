@@ -10,7 +10,7 @@
 
 	/**
 	 * Split dashboard: rendered by the page at the top of its card column,
-	 * styled like the dashboard cards (FEATURES.md #3).
+	 * styled like the dashboard cards over the 3D scene (FEATURES.md #3, #5).
 	 */
 	let { embedded = false }: { embedded?: boolean } = $props();
 
@@ -27,16 +27,10 @@
 </script>
 
 {#if embedded}
-	<!-- cards scroll away behind a page-background backdrop (never visibly above the
-	card) and fade out over the 16 px gap below it; the card paints on top of both,
-	shadow included -->
+	<!-- pinned over the scene; the frosted cards scroll up under it -->
 	<header class="sticky top-0 z-10 px-3 pt-3">
-		<div class="pointer-events-none absolute inset-0 bg-background"></div>
 		<div
-			class="pointer-events-none absolute inset-x-0 top-full h-4 bg-gradient-to-b from-background to-transparent"
-		></div>
-		<div
-			class="relative rounded-xl border bg-card p-1 text-card-foreground shadow-lg dark:border-slate-900 dark:shadow-slate-800"
+			class="relative rounded-xl border bg-card/70 p-1 text-card-foreground shadow-lg backdrop-blur-xl dark:border-slate-900"
 		>
 			{@render bar()}
 		</div>

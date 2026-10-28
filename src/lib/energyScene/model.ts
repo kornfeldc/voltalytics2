@@ -152,42 +152,48 @@ export interface Rect {
 
 /**
  * Fixed camera framing shared by the three.js camera and the 2D overlays. The
- * render frame (`viewSize`) can be larger than the visible hero: `safeRect` is
- * the part not covered by bars; the hero offsets the render so its centre is
- * the centre of `safeRect` (lens shift, `camera.setViewOffset` on the web).
+ * scene fills the whole view (FEATURES.md #5); `safeRect` is the part bars and
+ * the dashboard overlay leave free. The property is framed into it and the
+ * camera looks through its centre — an off-axis projection (lens shift,
+ * `camera.setViewOffset`), so the perspective stays the same wherever the
+ * free area sits.
  */
 export interface CameraRig {
 	position: Vec3;
 	target: Vec3;
-	/** vertical field of view in degrees */
-	verticalFov: number;
+	/** pinhole focal length in px (view distance per unit of tangent) */
+	focalLength: number;
+	/** where the optical axis meets the view: the centre of `safeRect` */
+	center: { x: number; y: number };
 	viewSize: { width: number; height: number };
+	/** free part of the view; callouts and the header chips stay inside it */
 	safeRect: Rect;
 }
 
 /**
- * Fits ~29 m of the property into the safe width for any aspect ratio and keeps
- * the horizon about a quarter down the safe area so sky and sun stay in frame.
+ * Fits ~29 m of the property into the free width (at least ±7.5 m into its
+ * height) and keeps the horizon about a quarter down the free area so sky and
+ * sun stay in frame.
  */
 export function framing(size: { width: number; height: number }, safeRect?: Rect): CameraRig {
 	const width = Math.max(size.width, 1);
 	const height = Math.max(size.height, 1);
 	const safe = safeRect ?? { x: 0, y: 0, width, height };
-	const aspect = width / height;
+	// degenerate free areas (tiny windows) frame as if they had some room
+	const safeWidth = Math.max(safe.width, 160);
+	const safeHeight = Math.max(safe.height, 160);
 	const aim: Vec3 = [3.8, 3.4, 1.2];
 	const yaw = (24 * Math.PI) / 180; // from +z toward +x
 	const distance = 38;
 	const halfSpan = 14.5;
-	const widthShare = clamp(safe.width / width, 0.3, 1);
-	const heightShare = clamp(safe.height / height, 0.3, 1);
-	const horizonFraction = (safe.y + 0.25 * safe.height) / height;
-	const horizonNdc = 1 - 2 * horizonFraction;
-	const tanHalfHeight = Math.max(
-		halfSpan / distance / widthShare / aspect,
-		7.5 / distance / heightShare
+	const focal = Math.min(
+		safeWidth / ((2 * halfSpan) / distance),
+		safeHeight / ((2 * 7.5) / distance)
 	);
+	// the axis passes the free area's centre; the horizon sits a quarter of its
+	// height above that, i.e. the camera pitches down by that angle
 	const pitch =
-		(clamp((Math.atan(horizonNdc * tanHalfHeight) * 180) / Math.PI, 5, 15) * Math.PI) / 180;
+		(clamp((Math.atan((0.25 * safeHeight) / focal) * 180) / Math.PI, 5, 15) * Math.PI) / 180;
 	const direction: Vec3 = [
 		Math.sin(yaw) * Math.cos(pitch),
 		Math.sin(pitch),
@@ -200,9 +206,28 @@ export function framing(size: { width: number; height: number }, safeRect?: Rect
 			aim[2] + direction[2] * distance
 		],
 		target: aim,
-		verticalFov: (2 * Math.atan(tanHalfHeight) * 180) / Math.PI,
+		focalLength: focal,
+		center: { x: safe.x + safe.width / 2, y: safe.y + safe.height / 2 },
 		viewSize: { width, height },
 		safeRect: safe
+	};
+}
+
+/**
+ * Symmetric frustum for three.js: the smallest frame centred on the optical
+ * axis that covers the view, its vertical fov, and where the view sits in it
+ * (`camera.setViewOffset`).
+ */
+export function lensFrame(rig: CameraRig) {
+	const { width, height } = rig.viewSize;
+	const halfWidth = Math.max(rig.center.x, width - rig.center.x);
+	const halfHeight = Math.max(rig.center.y, height - rig.center.y);
+	return {
+		fullWidth: 2 * halfWidth,
+		fullHeight: 2 * halfHeight,
+		offsetX: halfWidth - rig.center.x,
+		offsetY: halfHeight - rig.center.y,
+		verticalFov: (2 * Math.atan(halfHeight / rig.focalLength) * 180) / Math.PI
 	};
 }
 
@@ -218,7 +243,7 @@ const normalize = (a: Vec3): Vec3 => {
 	return [a[0] / length, a[1] / length, a[2] / length];
 };
 
-/** Screen point in render-frame coordinates, null when behind the camera. */
+/** Screen point in view coordinates, null when behind the camera. */
 export function project(rig: CameraRig, point: Vec3): { x: number; y: number } | null {
 	const forward = normalize(sub(rig.target, rig.position));
 	const right = normalize(cross(forward, [0, 1, 0]));
@@ -226,17 +251,13 @@ export function project(rig: CameraRig, point: Vec3): { x: number; y: number } |
 	const d = sub(point, rig.position);
 	const depth = dot(d, forward);
 	if (depth <= 0.01) return null;
-	const tanHalf = Math.tan((rig.verticalFov * Math.PI) / 360);
-	const aspect = rig.viewSize.width / rig.viewSize.height;
-	const ndcX = dot(d, right) / (depth * tanHalf * aspect);
-	const ndcY = dot(d, up) / (depth * tanHalf);
 	return {
-		x: ((ndcX + 1) / 2) * rig.viewSize.width,
-		y: ((1 - ndcY) / 2) * rig.viewSize.height
+		x: rig.center.x + (rig.focalLength * dot(d, right)) / depth,
+		y: rig.center.y - (rig.focalLength * dot(d, up)) / depth
 	};
 }
 
-/** Screen y (render frame) of the horizon straight ahead. */
+/** Screen y of the horizon straight ahead. */
 export function horizonY(rig: CameraRig): number {
 	const forward = sub(rig.target, rig.position);
 	const flat = normalize([forward[0], 0, forward[2]]);
@@ -245,5 +266,5 @@ export function horizonY(rig: CameraRig): number {
 		rig.position[1],
 		rig.position[2] + flat[2] * 10_000
 	];
-	return project(rig, far)?.y ?? rig.viewSize.height * 0.4;
+	return project(rig, far)?.y ?? rig.safeRect.y + 0.25 * rig.safeRect.height;
 }
