@@ -127,7 +127,9 @@ stacked/split layouts.
   the free area starts after the fade (user: the cards must be completely
   inside the tint). Stacked: a sheet that fades in over 140 pt/px below the
   free area, scrolls up with the cards and reaches at least the bottom of the
-  screen. Tabletop: below the fold, like the stacked sheet.
+  screen. Tabletop: below the fold, like the stacked sheet. iOS exception:
+  none on the iPhone Duo cover display (bars beside the content — the sheet
+  ended in a hard edge at the status/tab bar column; user).
 
 **Web:** `src/lib/energyScene/model.ts` (rig, `lensFrame`), `scene.ts`
 (projection from the rig), `sky.ts` (sun, moon and flights in the focus rect),
