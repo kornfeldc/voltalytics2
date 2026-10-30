@@ -43,7 +43,8 @@
 		drawSky,
 		drawWeatherEffects,
 		hasAnimatedEffects,
-		seasonSkyAnimates
+		seasonSkyAnimates,
+		skyTopColor
 	} from '$lib/energyScene/sky';
 	import { activeSeason, seasonEmoji } from '$lib/energyScene/season';
 	import {
@@ -180,6 +181,11 @@
 		drawWeatherEffects(ctx, rig, daylight, weather, time);
 		drawSeasonSky(ctx, rig, daylight, season, Number.isFinite(qaSkyTime) ? qaSkyTime : time);
 	}
+
+	// the floating TopBar takes this colour; iOS Safari extends it into its status bar
+	$effect(() => {
+		sceneState.skyTop = skyTopColor(daylight, weather);
+	});
 
 	$effect(() => {
 		if (width <= 0 || height <= 0) return;

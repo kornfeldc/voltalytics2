@@ -27,6 +27,8 @@
 	let viewportWidth = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
 	let viewportHeight = $state(typeof window === 'undefined' ? 0 : window.innerHeight);
 	let scrollY = $state(0);
+	/** env(safe-area-inset-top) in px — installed web app: the status bar overlays the page. */
+	let safeTop = $state(0);
 
 	const sceneLayout = (userSettings: IUserSettings | undefined): SceneLayout =>
 		!sceneState.enabled || !userSettings?.currentInverter
@@ -49,9 +51,9 @@
 		layout === 'split'
 			? {
 					x: columnWidth + columnFade,
-					y: 0,
+					y: safeTop,
 					width: Math.max(1, viewportWidth - columnWidth - columnFade),
-					height: viewportHeight
+					height: Math.max(1, viewportHeight - safeTop)
 				}
 			: { x: 0, y: sceneState.topBarHeight, width: viewportWidth, height: focusHeight };
 
@@ -61,13 +63,16 @@
 
 	/** Tells the layout which chrome to render (TopBar, width limit). */
 	const syncLayout = (_node: HTMLElement, layout: SceneLayout) => {
-		sceneState.layout = layout;
+		const apply = (next: SceneLayout) => {
+			sceneState.layout = next;
+			// page background behind the browser UI (styles below)
+			document.documentElement.dataset.scene = next;
+		};
+		apply(layout);
 		return {
-			update: (next: SceneLayout) => {
-				sceneState.layout = next;
-			},
+			update: apply,
 			destroy: () => {
-				sceneState.layout = 'off';
+				apply('off');
 				sceneState.heroUnderBar = false;
 			}
 		};
@@ -193,6 +198,7 @@
 	{@const layout = sceneLayout(userSettings)}
 	<div class="contents" use:syncLayout={layout}>
 		{#if layout !== 'off'}
+			<div class="safe_top_probe" bind:clientHeight={safeTop}></div>
 			<!-- one scene behind both layouts: resizing across them never remounts it -->
 			<div class="scene_backdrop">
 				<EnergyHero hasWallbox={!!userSettings?.currentWallbox} focus={focus(layout)} />
@@ -285,15 +291,41 @@
 	}
 
 	/* 3D house view (FEATURES.md #3): the scene fills the viewport behind the
-	page (FEATURES.md #5), the cards float over it. 100vh = the large viewport on
-	mobile Safari: a collapsing toolbar doesn't resize the canvas. */
-	.scene_backdrop {
+	page (FEATURES.md #5), the cards float over it. lvh: a collapsing toolbar
+	doesn't resize the canvas. */
+	.scene_backdrop,
+	.scene_column_tint {
 		position: fixed;
 		top: 0;
 		left: 0;
-		width: 100%;
 		height: 100vh;
+		height: 100lvh;
 		z-index: 0;
+	}
+
+	/* the page background shows below the content, behind the browser UI (iOS
+	Safari's toolbar): the tinted card area's colour while the scene is on */
+	:global(html:not([data-scene='off'])[data-scene]),
+	:global(html:not([data-scene='off'])[data-scene] body) {
+		background: rgb(144 157 139);
+	}
+
+	:global(html.dark:not([data-scene='off'])[data-scene]),
+	:global(html.dark:not([data-scene='off'])[data-scene] body) {
+		background: rgb(37 46 55);
+	}
+
+	.scene_backdrop {
+		width: 100%;
+	}
+
+	.safe_top_probe {
+		position: fixed;
+		top: 0;
+		width: 0;
+		height: env(safe-area-inset-top);
+		visibility: hidden;
+		pointer-events: none;
 	}
 
 	.scene_overlay {
@@ -328,11 +360,6 @@
 
 	.scene_column_tint {
 		--fade: 64px;
-		position: fixed;
-		top: 0;
-		left: 0;
-		height: 100vh;
-		z-index: 0;
 		pointer-events: none;
 		background: linear-gradient(to left, var(--tint-ramp));
 	}

@@ -8,21 +8,33 @@
 // callouts and header pills uncovered. Requires Playwright Chromium or local
 // Chrome (WebGL may run in software: slow).
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
 const outDir = process.argv[2] ?? '/tmp/voltalytics-scene-qa';
 mkdirSync(outDir, { recursive: true });
 
+// the app's own <meta> tags (viewport, theme colour, web-app status bar), so
+// browsers treat the harness like the real app shell
+const appMetas = (readFileSync('src/app.html', 'utf8').match(/<meta [^>]*>/g) ?? []).join('\n\t');
+
 const harness = `<!doctype html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+	${appMetas}
 </head>
 <body>
 	<div id="app"></div>
+	<script>
+		// QA_SERVE (real browsers, e.g. iOS Safari in the simulator): ?scene=1 turns
+		// the 3D view on — before the modules read (and persist) the setting
+		if (new URLSearchParams(location.search).get('scene') === '1')
+			localStorage.setItem('voltalytics_sceneEnabled', 'true');
+		// ?qaScroll=end: scroll to the bottom once loaded (browser UI over the page end)
+		if (new URLSearchParams(location.search).get('qaScroll') === 'end')
+			addEventListener('load', () => setTimeout(() => scrollTo(0, 1e6), 3000));
+	</script>
 	<script type="module">
 		import { mount } from 'svelte';
 		import Harness from '/scripts/qa/SceneHarness.svelte';
@@ -155,9 +167,14 @@ const harness = `<!doctype html>
 </body>
 </html>`;
 
+// QA_SERVE=5199: only serve the harness page on that port (no screenshots), for
+// manual checks in real browsers — iOS Safari: xcrun simctl openurl booted
+// "http://localhost:5199/__energy-scene?scene=1&qaHour=13"
+const servePort = Number(process.env.QA_SERVE ?? 0);
+
 const server = await createServer({
 	// SvelteKit limits served files to src/ etc.; the harness wrapper lives in scripts/qa
-	server: { port: 0, fs: { allow: ['scripts/qa'] } },
+	server: { port: servePort, strictPort: servePort > 0, fs: { allow: ['scripts/qa'] } },
 	plugins: [
 		{
 			name: 'energy-scene-harness',
@@ -302,6 +319,12 @@ const check = (name, fn) => {
 		console.log(`FAIL: ${name}: ${e.message.replace(/\s+/g, ' ')}`);
 	}
 };
+
+if (servePort > 0) {
+	await server.listen();
+	console.log(`serving http://localhost:${servePort}/__energy-scene?scene=1 (Ctrl+C to stop)`);
+	await new Promise(() => {});
+}
 
 try {
 	await server.listen();
@@ -477,6 +500,17 @@ try {
 			// battery labels exist only in InverterLiveGraph (the classic live card)
 			liveGraph: /(Dis)?[Cc]harging Battery/.test(document.body.innerText),
 			topBarBackground: getComputedStyle(document.querySelector('header')).backgroundColor,
+			// sky canvas pixel just behind the TopBar's left end (2D canvas, device px)
+			skyBehindBar: (() => {
+				const canvas = document.querySelector('.hero canvas');
+				const header = document.querySelector('header')?.getBoundingClientRect();
+				if (!canvas || !header) return null;
+				const scale = canvas.width / canvas.clientWidth;
+				const [r, g, b] = canvas
+					.getContext('2d')
+					.getImageData(4 * scale, (header.top + header.height / 2) * scale, 1, 1).data;
+				return [r, g, b];
+			})(),
 			sheetBottom: document.querySelector('.scene_sheet')?.getBoundingClientRect().bottom ?? null,
 			viewportHeight: innerHeight,
 			// callouts + header pills under a card or the TopBar, or outside the viewport
@@ -562,9 +596,16 @@ try {
 			);
 		}
 		if (qa.name === 'phone-stacked-day') {
-			check('stacked TopBar floats transparent over the sky', () =>
-				assert.equal(facts.topBarBackground, 'rgba(0, 0, 0, 0)')
-			);
+			// iOS Safari extends the bar's colour into its status bar, so the bar
+			// floats in the sky's colour rather than transparent
+			check('stacked TopBar floats in the colour of the sky behind it', () => {
+				const bar = facts.topBarBackground.match(/\d+/g).slice(0, 3).map(Number);
+				assert.ok(facts.skyBehindBar, 'no sky pixel');
+				assert.ok(
+					bar.every((value, index) => Math.abs(value - facts.skyBehindBar[index]) <= 3),
+					`bar ${bar} vs sky ${facts.skyBehindBar}`
+				);
+			});
 		}
 		if (qa.name === 'phone-stacked-scrolled') {
 			check('stacked TopBar gets its background back once scrolled past the scene', () =>

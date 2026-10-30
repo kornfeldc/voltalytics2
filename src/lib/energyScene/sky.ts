@@ -107,6 +107,13 @@ export function skyPalette(daylight: Daylight, weather: CurrentWeather | undefin
 	};
 }
 
+/**
+ * Colour at the top edge of the sky — iOS Safari extends it into its status
+ * bar area, which pages cannot draw into (FEATURES.md #5).
+ */
+export const skyTopColor = (daylight: Daylight, weather: CurrentWeather | undefined) =>
+	css(skyPalette(daylight, weather).zenith);
+
 /** Where the moon sits (upper left of the free area), shared by the sky and the Halloween witch. */
 const moonPosition = (rig: CameraRig) => ({
 	x: rig.safeRect.x + rig.safeRect.width * 0.2,
@@ -130,7 +137,9 @@ export function drawSky(
 	const clouds = weather ? cloudiness(weather) : 0.15;
 	const topInset = rig.safeRect.y;
 
-	const gradient = ctx.createLinearGradient(0, 0, 0, horizon);
+	// flat above the free area: the stacked TopBar floats over it in the same
+	// colour, which iOS Safari extends into its status bar (FEATURES.md #5)
+	const gradient = ctx.createLinearGradient(0, Math.min(topInset, horizon - 1), 0, horizon);
 	gradient.addColorStop(0, css(palette.zenith));
 	gradient.addColorStop(0.5, css(palette.mid));
 	gradient.addColorStop(1, css(palette.horizon));
@@ -207,6 +216,17 @@ export function drawSky(
 		const cx = rng.next() * width;
 		const cy = skyTop + skyHeight * (0.22 + rng.next() * 0.5);
 		cumulus(ctx, cx, cy, w, palette, rng);
+	}
+	// behind a TopBar the sky stays flat (the bar floats in this colour) and
+	// fades into stars, glow and clouds over 24 px instead of a hard edge
+	if (topInset > 0) {
+		const fade = ctx.createLinearGradient(0, topInset, 0, topInset + 24);
+		fade.addColorStop(0, css(palette.zenith));
+		fade.addColorStop(1, css(palette.zenith, 0));
+		ctx.fillStyle = css(palette.zenith);
+		ctx.fillRect(0, 0, width, topInset);
+		ctx.fillStyle = fade;
+		ctx.fillRect(0, topInset, width, 24);
 	}
 }
 

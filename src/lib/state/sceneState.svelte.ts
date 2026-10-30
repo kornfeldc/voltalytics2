@@ -28,7 +28,9 @@ export const sceneState = $state({
 	/** Stacked layout, cards not yet under the TopBar: it floats transparent over the scene. */
 	heroUnderBar: false,
 	/** Measured TopBar height (the stacked layout frames the property below it). */
-	topBarHeight: 56
+	topBarHeight: 56,
+	/** Sky colour at the scene's top edge, set by EnergyHero (iOS Safari status bar area). */
+	skyTop: ''
 });
 
 // Settings binds the two per-browser values directly; persist every change.

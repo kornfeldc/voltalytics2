@@ -141,6 +141,21 @@ landscape-shaped), `TopBar.svelte` (embedded bar frosted, opaque backdrop band
 removed). #3's eased left-edge fade of the split scene is gone: the scene now
 runs behind the column.
 
+iOS Safari (26+, user: "the whole screen should be filled"): pages can't draw
+under Safari's status bar or toolbar. Safari fills the status bar with the
+background colour of a fixed or sticky element at the top edge (`theme-color` is
+ignored; elements must be ≥ ~30 px tall to be picked up after load) and shows
+the page background below the content behind its toolbar. So the floating
+TopBar takes the sky's top colour (`skyTopColor`; the web sky stays flat behind
+it and fades into stars, glow and clouds over 24 px), and while the scene is on
+the page background is the tinted card area's colour (`html[data-scene]`). The
+installed web app now uses `apple-mobile-web-app-status-bar-style:
+black-translucent` (the old value was a colour, which iOS ignores) and draws the
+scene under the status bar; TopBar and column header pad by
+`env(safe-area-inset-top)`. Harness: `QA_SERVE=5199 node
+scripts/qa-energy-scene.mjs` serves the page for real browsers (`?scene=1`,
+`?qaScroll=end`, e.g. Safari in the iOS simulator via `xcrun simctl openurl`).
+
 **iOS:** `EnergySceneModel.swift` (rig, `projectionMatrix`), `EnergyScene.swift`
 (projective camera), `EnergyHeroView.swift` (`focus` replaces `topInset`,
 `fadesOut` and the oversized lens-shift render; pill avoidance with slide),
