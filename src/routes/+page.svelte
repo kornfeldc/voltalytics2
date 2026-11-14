@@ -21,7 +21,7 @@
 	<Button onclick={() => signIn('google', { callbackUrl: '/v/dashboard' })}>Sign in</Button>
 
 	<a href="/awattar">
-		<Card.Root class="mt-20 w-full max-w-72 border-slate-900 shadow-lg shadow-slate-800">
+		<Card.Root class="mt-20 w-full max-w-72 shadow-lg dark:border-slate-900 dark:shadow-slate-800">
 			<Card.Header class="flex flex-col p-2 px-4">
 				<div class="grid grid-cols-2">
 					<h1 class="whitespace-nowrap">prices</h1>

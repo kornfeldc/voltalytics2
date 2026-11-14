@@ -236,7 +236,7 @@
 			<div>{@render productionFlow()}</div>
 			<div class={'row-span-2 flex justify-center align-middle'}>
 				<HomeIcon
-					class="mt-1 h-10 w-10 rounded-full border-2 border-primary/70 bg-primary/20 p-1.5 text-white/80"
+					class="mt-1 h-10 w-10 rounded-full border-2 border-primary/70 bg-primary/20 p-1.5 text-primary dark:text-white/80"
 				></HomeIcon>
 			</div>
 			<div>{@render gridFlow()}</div>
