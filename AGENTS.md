@@ -145,6 +145,14 @@ const userSettings = await Db.getUserSettings(session.user.email);
 - `components.json`/prettier config came from a Windows setup (`src\\app.css` path) — irrelevant on macOS, ignore.
 - No lint-staged/husky; nothing blocks commits — discipline is on you.
 
+## Git workflow: never push to `main`
+
+- **Never push directly to `main`** (no `git push origin main`, no fast-forwarding `main` on the remote). `main` changes only by merging a PR, and the user merges.
+- When the user asks to commit/ship work: create a branch off `main` (short kebab-case name, e.g. `light-mode-theme`), commit there, push the branch, and open a PR with `gh pr create --base main`.
+- **Always send the user the PR link** (the full `https://github.com/...` URL) in your reply after creating or updating a PR.
+- Already on `main` with local changes? Branch first (`git switch -c <branch>`); the changes come along. If a commit landed on local `main` by mistake, move it to a branch and reset local `main` to `origin/main` before pushing.
+- Commit only when asked; when asked, commit right away (no need to show the message first), then push the branch and open the PR.
+
 ## Dual-platform policy (READ THIS FIRST for feature work)
 
 Sibling iOS repo: `../voltalyticsIos` (SwiftUI port, iOS 26+). Its `AGENTS.md`
